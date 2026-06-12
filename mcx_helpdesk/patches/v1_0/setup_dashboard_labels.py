@@ -1,8 +1,8 @@
 # Copyright (c) 2026, Ascra Technologies LLP and contributors
 # For license information, please see license.txt
 
-from mcx_helpdesk.setup.dashboard_labels import ensure_dashboard_labels
+from mcx_helpdesk.setup.sync import sync_mcx_helpdesk
 
 
 def execute():
-	ensure_dashboard_labels()
+	sync_mcx_helpdesk()

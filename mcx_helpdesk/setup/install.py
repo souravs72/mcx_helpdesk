@@ -6,8 +6,6 @@ from __future__ import annotations
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
-from mcx_helpdesk.setup.dashboard_labels import ensure_dashboard_labels
-
 TEAMS = ["Trading", "Clearing", "IT", "Compliance"]
 
 ISSUE_TYPES = [
@@ -42,18 +40,9 @@ DEMO_AGENTS = [
 
 
 def after_install():
-	ensure_custom_fields()
-	ensure_labels()
-	ensure_issue_types()
-	ensure_sub_issue_types()
-	ensure_ticket_template_field()
-	ensure_sub_issue_field_dependency()
-	disable_legacy_teams()
-	setup_demo_agents_and_teams()
-	configure_email_account()
-	configure_hd_settings()
-	ensure_dashboard_labels()
-	frappe.db.commit()
+	from mcx_helpdesk.setup.sync import sync_mcx_helpdesk
+
+	sync_mcx_helpdesk()
 
 
 def ensure_custom_fields():
@@ -68,13 +57,30 @@ def ensure_custom_fields():
 					"insert_after": "ticket_type",
 					"in_list_view": 1,
 					"in_standard_filter": 1,
-					"depends_on": "eval:doc.ticket_type",
+					"depends_on": "eval:doc.ticket_type != ''",
 					"link_filters": '[["HD Sub Issue Type","issue_type","=","eval:doc.ticket_type"]]',
 				}
 			]
 		},
 		ignore_validate=True,
 		update=True,
+	)
+
+
+def ensure_custom_field_metadata():
+	"""Keep Custom Field flags aligned with fixtures after install/migrate."""
+	name = "HD Ticket-sub_issue_type"
+	if not frappe.db.exists("Custom Field", name):
+		return
+	frappe.db.set_value(
+		"Custom Field",
+		name,
+		{
+			"depends_on": "eval:doc.ticket_type != ''",
+			"link_filters": '[["HD Sub Issue Type","issue_type","=","eval:doc.ticket_type"]]',
+			"module": "MCX Helpdesk",
+			"label": "Sub Issue Type",
+		},
 	)
 
 

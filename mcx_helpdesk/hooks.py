@@ -31,7 +31,6 @@ fixtures = [
 		"filters": [["name", "=", "Field Dependency-ticket_type-sub_issue_type"]],
 	},
 	{"dt": "HD Ticket Template", "filters": [["name", "=", "Default"]]},
-	{"dt": "DocType", "filters": [["name", "=", "HD Sub Issue Type"]]},
 	{"dt": "HD Sub Issue Type"},
 	{
 		"dt": "HD Ticket Type",
@@ -85,6 +84,8 @@ fixtures = [
 ]
 
 after_install = "mcx_helpdesk.setup.install.after_install"
+
+after_migrate = ["mcx_helpdesk.setup.sync.after_migrate"]
 
 override_whitelisted_methods = {
 	"helpdesk.api.dashboard.get_dashboard_data": "mcx_helpdesk.api.dashboard.get_dashboard_data",
