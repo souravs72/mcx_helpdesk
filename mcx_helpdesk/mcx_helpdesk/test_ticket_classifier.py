@@ -4,7 +4,7 @@
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from mcx_helpdesk.mcx_helpdesk.ticket_classifier import TAG_RE, _clean_subject, classify_ticket
+from mcx_helpdesk.mcx_helpdesk.ticket_classifier import TAG_RE, _clean_subject, _tag_source_text, classify_ticket
 
 
 class TestTicketClassifier(FrappeTestCase):
@@ -17,9 +17,15 @@ class TestTicketClassifier(FrappeTestCase):
 
 	def test_clean_subject_strips_tags(self):
 		subject = "[DEPT:IT][TYPE:Portal Access] Login failed"
-		cleaned = _clean_subject(subject)
+		cleaned = _clean_subject(subject, subject)
 		self.assertNotIn("[", cleaned)
 		self.assertIn("Login failed", cleaned)
+
+	def test_body_first_line_tags(self):
+		subject = "Help needed"
+		description = "[DEPT:IT][TYPE:Portal Access][SUB:Login Issue]\n\nPlease help with login."
+		tag_source = _tag_source_text(subject, description)
+		self.assertIn("DEPT:IT", tag_source.upper())
 
 	def test_classify_ticket_from_tags(self):
 		if not frappe.db.exists("HD Ticket Type", "IT - Portal Access"):

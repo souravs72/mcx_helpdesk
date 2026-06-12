@@ -4,6 +4,7 @@
 import re
 
 import frappe
+from frappe.desk.form.assign_to import add as assign
 
 from mcx_helpdesk.constants import ISSUE_TYPES
 
@@ -20,24 +21,31 @@ KEYWORD_RULES = [
 	(["regulatory", "compliance report", "reporting"], "Compliance - Reporting", "Compliance", "Regulatory Filing"),
 ]
 
-TAG_RE = re.compile(r"\[(TEAM|DEPT|TYPE|SUB):([^\]]+)\]", re.I)
+# Subject/body tags — aliases in parentheses
+TAG_RE = re.compile(
+	r"\[(TEAM|DEPT|TYPE|SUB|CUSTOMER|CUST|ASSIGNEE|ASSIGN):([^\]]+)\]",
+	re.I,
+)
 
 
 def classify_ticket(doc, _method=None):
-	"""Auto-set Team, Issue Type, and Sub Issue Type from email subject/body."""
+	"""Auto-set classification fields from email subject/body tags or keywords."""
 	if doc.doctype != "HD Ticket":
 		return
 	if not doc.get("subject") and not doc.get("description"):
 		return
 
 	subject = doc.subject or ""
+	tag_source = _tag_source_text(subject, doc.description or "")
 	text = f"{subject} {frappe.utils.strip_html(doc.description or '')[:1000]}".lower()
 
 	team = None
 	issue_type = None
 	sub_issue = None
+	customer = None
+	assignee = None
 
-	for tag, value in TAG_RE.findall(subject):
+	for tag, value in TAG_RE.findall(tag_source):
 		tag = tag.upper()
 		value = value.strip()
 		if tag in ("TEAM", "DEPT"):
@@ -46,6 +54,10 @@ def classify_ticket(doc, _method=None):
 			issue_type = _resolve_issue_type(value) or issue_type
 		elif tag == "SUB":
 			sub_issue = _resolve_sub_issue(value, issue_type) or sub_issue
+		elif tag in ("CUSTOMER", "CUST"):
+			customer = _resolve_customer(value) or customer
+		elif tag in ("ASSIGNEE", "ASSIGN"):
+			assignee = _resolve_assignee(value) or assignee
 
 	if not issue_type or not team or not sub_issue:
 		for keywords, rule_issue, rule_team, rule_sub in KEYWORD_RULES:
@@ -72,9 +84,45 @@ def classify_ticket(doc, _method=None):
 		resolved_sub = _resolve_sub_issue(sub_issue, doc.ticket_type)
 		if resolved_sub:
 			doc.sub_issue_type = resolved_sub
+	if customer:
+		doc.customer = customer
+	if assignee:
+		doc.flags.mcx_assignee = assignee
 
-	if TAG_RE.search(subject):
-		doc.subject = _clean_subject(subject)
+	if TAG_RE.search(tag_source):
+		doc.subject = _clean_subject(subject, tag_source)
+
+
+def apply_classified_assignee(doc, _method=None):
+	"""Assign agent after insert (assignment requires a saved ticket)."""
+	assignee = doc.flags.get("mcx_assignee")
+	if not assignee:
+		return
+	if not frappe.db.exists("HD Agent", assignee):
+		return
+
+	assign(
+		{
+			"assign_to": [assignee],
+			"doctype": "HD Ticket",
+			"name": doc.name,
+			"description": "Assigned from email classification tags",
+		},
+		ignore_permissions=True,
+	)
+
+
+def _tag_source_text(subject, description):
+	"""Collect tags from subject and the first non-empty line of the email body."""
+	parts = [subject or ""]
+	if description:
+		plain = frappe.utils.strip_html(description)
+		for line in plain.splitlines():
+			line = line.strip()
+			if line:
+				parts.append(line)
+				break
+	return " ".join(parts)
 
 
 def _resolve_issue_type(value):
@@ -123,9 +171,60 @@ def _resolve_sub_issue(value, issue_type=None):
 	return matches[0] if matches else None
 
 
-def _clean_subject(subject):
+def _resolve_customer(value):
+	value = (value or "").strip()
+	if not value:
+		return None
+	if frappe.db.exists("HD Customer", value):
+		return value
+	matches = frappe.get_all(
+		"HD Customer",
+		filters=[
+			["customer_name", "like", f"%{value}%"],
+		],
+		pluck="name",
+		limit=1,
+	)
+	if matches:
+		return matches[0]
+	domain_matches = frappe.get_all(
+		"HD Customer",
+		filters={"domain": value},
+		pluck="name",
+		limit=1,
+	)
+	return domain_matches[0] if domain_matches else None
+
+
+def _resolve_assignee(value):
+	value = (value or "").strip()
+	if not value:
+		return None
+	if "@" in value and frappe.db.exists("HD Agent", value):
+		return value
+	if frappe.db.exists("HD Agent", value):
+		return value
+	email_matches = frappe.get_all(
+		"HD Agent",
+		filters={"user": ["like", f"%{value}%"]},
+		pluck="user",
+		limit=1,
+	)
+	if email_matches:
+		return email_matches[0]
+	name_matches = frappe.get_all(
+		"HD Agent",
+		filters={"agent_name": ["like", f"%{value}%"]},
+		pluck="user",
+		limit=1,
+	)
+	return name_matches[0] if name_matches else None
+
+
+def _clean_subject(subject, tag_source):
 	if not subject:
 		return subject
+	# Only strip tags that appear in subject (keep body tags out of stored subject)
 	cleaned = TAG_RE.sub("", subject).strip()
 	cleaned = re.sub(r"\s+", " ", cleaned)
 	return cleaned or subject

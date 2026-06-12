@@ -109,5 +109,6 @@ override_whitelisted_methods = {
 doc_events = {
 	"HD Ticket": {
 		"before_validate": "mcx_helpdesk.mcx_helpdesk.ticket_classifier.classify_ticket",
+		"after_insert": "mcx_helpdesk.mcx_helpdesk.ticket_classifier.apply_classified_assignee",
 	}
 }

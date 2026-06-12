@@ -168,7 +168,7 @@ def ensure_user(email: str, full_name: str, password: str = "demo@123"):
 	)
 	user.new_password = password
 	user.insert(ignore_permissions=True)
-	user.add_roles("Agent", "Helpdesk Agent")
+	user.add_roles("Agent", "Desk User")
 
 
 def ensure_agent(email: str, full_name: str):
