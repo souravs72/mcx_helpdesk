@@ -12,7 +12,7 @@ Custom app for the MCX RFP Helpdesk demo on Frappe Helpdesk.
 ## Install
 
 ```bash
-bench get-app https://github.com/ascra-tech/mcx_helpdesk  # when published
+bench get-app https://github.com/souravs72/mcx_helpdesk
 bench --site mcx.site install-app mcx_helpdesk
 bench --site mcx.site migrate
 ```
