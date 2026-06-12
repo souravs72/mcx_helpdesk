@@ -33,7 +33,7 @@
   "is_virtual": 0,
   "label": "Sub Issue Type",
   "length": 0,
-  "link_filters": "",
+  "link_filters": null,
   "mandatory_depends_on": null,
   "modified": "2026-06-12 14:30:55.664539",
   "module": "MCX Helpdesk",

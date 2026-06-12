@@ -38,7 +38,7 @@ def ensure_custom_field_metadata():
 		"HD Ticket-sub_issue_type",
 		{
 			"depends_on": "eval:doc.ticket_type",
-			"link_filters": None,
+			"link_filters": "[]",
 			"in_list_view": 1,
 			"in_standard_filter": 1,
 		},
