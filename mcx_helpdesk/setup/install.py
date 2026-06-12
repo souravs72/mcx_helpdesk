@@ -6,6 +6,8 @@ from __future__ import annotations
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
+from mcx_helpdesk.setup.dashboard_labels import ensure_dashboard_labels
+
 TEAMS = ["Trading", "Clearing", "IT", "Compliance"]
 
 ISSUE_TYPES = [
@@ -50,6 +52,7 @@ def after_install():
 	setup_demo_agents_and_teams()
 	configure_email_account()
 	configure_hd_settings()
+	ensure_dashboard_labels()
 	frappe.db.commit()
 
 

@@ -1,6 +1,6 @@
 [
  {
-  "assignment_rule": "Trading - Support Rotation-1",
+  "assignment_rule": "Trading - Support Rotation-2",
   "disabled": 0,
   "docstatus": 0,
   "doctype": "HD Team",
@@ -15,7 +15,7 @@
   ]
  },
  {
-  "assignment_rule": "Clearing - Support Rotation-1",
+  "assignment_rule": "Clearing - Support Rotation-2",
   "disabled": 0,
   "docstatus": 0,
   "doctype": "HD Team",
@@ -30,7 +30,7 @@
   ]
  },
  {
-  "assignment_rule": "IT - Support Rotation-1",
+  "assignment_rule": "IT - Support Rotation-2",
   "disabled": 0,
   "docstatus": 0,
   "doctype": "HD Team",
@@ -45,7 +45,7 @@
   ]
  },
  {
-  "assignment_rule": "Compliance - Support Rotation-1",
+  "assignment_rule": "Compliance - Support Rotation-2",
   "disabled": 0,
   "docstatus": 0,
   "doctype": "HD Team",

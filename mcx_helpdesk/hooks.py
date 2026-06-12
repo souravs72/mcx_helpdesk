@@ -56,9 +56,39 @@ fixtures = [
 		"dt": "HD Team",
 		"filters": [["name", "in", ["Trading", "Clearing", "IT", "Compliance"]]],
 	},
+	{
+		"dt": "Translation",
+		"filters": [
+			[
+				"source_text",
+				"in",
+				[
+					"Team",
+					"Teams",
+					"Team Name",
+					"Ticket Type",
+					"Tickets by Team",
+					"Tickets by Type",
+					"No Team",
+					"No team data",
+					"Tickets will be grouped by team once available.",
+					"No ticket type data",
+					"Tickets will be categorized by type once created.",
+					"Percentage of total tickets by team",
+					"Total tickets by team",
+					"Percentage of total tickets by type",
+					"Total tickets by type",
+				],
+			]
+		],
+	},
 ]
 
 after_install = "mcx_helpdesk.setup.install.after_install"
+
+override_whitelisted_methods = {
+	"helpdesk.api.dashboard.get_dashboard_data": "mcx_helpdesk.api.dashboard.get_dashboard_data",
+}
 
 doc_events = {
 	"HD Ticket": {
