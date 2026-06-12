@@ -1,0 +1,62 @@
+[
+ {
+  "assignment_rule": "Trading - Support Rotation",
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "HD Team",
+  "ignore_restrictions": 0,
+  "modified": "2026-06-12 14:22:00.116820",
+  "name": "Trading",
+  "team_name": "Trading",
+  "users": [
+   {
+    "user": "mcx.trading.agent@demo.com"
+   }
+  ]
+ },
+ {
+  "assignment_rule": "Clearing - Support Rotation",
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "HD Team",
+  "ignore_restrictions": 0,
+  "modified": "2026-06-12 14:22:00.139515",
+  "name": "Clearing",
+  "team_name": "Clearing",
+  "users": [
+   {
+    "user": "mcx.clearing.agent@demo.com"
+   }
+  ]
+ },
+ {
+  "assignment_rule": "IT - Support Rotation",
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "HD Team",
+  "ignore_restrictions": 0,
+  "modified": "2026-06-12 14:22:00.146267",
+  "name": "IT",
+  "team_name": "IT",
+  "users": [
+   {
+    "user": "souravsingh2609@gmail.com"
+   }
+  ]
+ },
+ {
+  "assignment_rule": "Compliance - Support Rotation",
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "HD Team",
+  "ignore_restrictions": 0,
+  "modified": "2026-06-12 14:22:00.152309",
+  "name": "Compliance",
+  "team_name": "Compliance",
+  "users": [
+   {
+    "user": "mcx.compliance.agent@demo.com"
+   }
+  ]
+ }
+]

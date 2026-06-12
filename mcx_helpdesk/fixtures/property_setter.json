@@ -1,0 +1,41 @@
+[
+ {
+  "doc_type": "HD Ticket",
+  "docstatus": 0,
+  "doctype": "Property Setter",
+  "doctype_or_field": "DocField",
+  "field_name": "ticket_type",
+  "is_system_generated": 0,
+  "module": "MCX Helpdesk",
+  "name": "HD Ticket-ticket_type-label",
+  "property": "label",
+  "property_type": "Data",
+  "value": "Issue Type"
+ },
+ {
+  "doc_type": "HD Ticket",
+  "docstatus": 0,
+  "doctype": "Property Setter",
+  "doctype_or_field": "DocField",
+  "field_name": "agent_group",
+  "is_system_generated": 0,
+  "module": "MCX Helpdesk",
+  "name": "HD Ticket-agent_group-label",
+  "property": "label",
+  "property_type": "Data",
+  "value": "Team"
+ },
+ {
+  "doc_type": "HD Team",
+  "docstatus": 0,
+  "doctype": "Property Setter",
+  "doctype_or_field": "DocField",
+  "field_name": "team_name",
+  "is_system_generated": 0,
+  "module": "MCX Helpdesk",
+  "name": "HD Team-team_name-label",
+  "property": "label",
+  "property_type": "Data",
+  "value": "Team Name"
+ }
+]

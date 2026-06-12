@@ -1,0 +1,74 @@
+[
+ {
+  "docstatus": 0,
+  "doctype": "HD Sub Issue Type",
+  "issue_type": "Trading - Order Entry",
+  "modified": "2026-06-12 14:21:59.482461",
+  "name": "Order Rejection",
+  "sub_issue_name": "Order Rejection"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "HD Sub Issue Type",
+  "issue_type": "Trading - Margin Query",
+  "modified": "2026-06-12 14:21:59.482892",
+  "name": "Price Mismatch",
+  "sub_issue_name": "Price Mismatch"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "HD Sub Issue Type",
+  "issue_type": "Clearing - Settlement",
+  "modified": "2026-06-12 14:21:59.483303",
+  "name": "Settlement Delay",
+  "sub_issue_name": "Settlement Delay"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "HD Sub Issue Type",
+  "issue_type": "Clearing - Payout",
+  "modified": "2026-06-12 14:21:59.483796",
+  "name": "Payout Pending",
+  "sub_issue_name": "Payout Pending"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "HD Sub Issue Type",
+  "issue_type": "IT - Portal Access",
+  "modified": "2026-06-12 14:21:59.484344",
+  "name": "Login Issue",
+  "sub_issue_name": "Login Issue"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "HD Sub Issue Type",
+  "issue_type": "IT - Portal Access",
+  "modified": "2026-06-12 14:21:59.484815",
+  "name": "Password Reset",
+  "sub_issue_name": "Password Reset"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "HD Sub Issue Type",
+  "issue_type": "IT - System Downtime",
+  "modified": "2026-06-12 14:21:59.485259",
+  "name": "System Outage",
+  "sub_issue_name": "System Outage"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "HD Sub Issue Type",
+  "issue_type": "Compliance - Reporting",
+  "modified": "2026-06-12 14:21:59.485744",
+  "name": "Regulatory Filing",
+  "sub_issue_name": "Regulatory Filing"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "HD Sub Issue Type",
+  "issue_type": "Compliance - KYC",
+  "modified": "2026-06-12 14:21:59.486141",
+  "name": "KYC Update",
+  "sub_issue_name": "KYC Update"
+ }
+]

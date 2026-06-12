@@ -1,0 +1,82 @@
+[
+ {
+  "description": null,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "HD Ticket Type",
+  "is_system": 0,
+  "modified": "2026-06-12 14:21:59.478605",
+  "name": "Trading - Order Entry",
+  "priority": "Medium"
+ },
+ {
+  "description": null,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "HD Ticket Type",
+  "is_system": 0,
+  "modified": "2026-06-12 14:21:59.479264",
+  "name": "Trading - Margin Query",
+  "priority": "Medium"
+ },
+ {
+  "description": null,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "HD Ticket Type",
+  "is_system": 0,
+  "modified": "2026-06-12 14:21:59.479713",
+  "name": "Clearing - Settlement",
+  "priority": "High"
+ },
+ {
+  "description": null,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "HD Ticket Type",
+  "is_system": 0,
+  "modified": "2026-06-12 14:21:59.480253",
+  "name": "Clearing - Payout",
+  "priority": "High"
+ },
+ {
+  "description": null,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "HD Ticket Type",
+  "is_system": 0,
+  "modified": "2026-06-12 14:21:59.480718",
+  "name": "IT - Portal Access",
+  "priority": "High"
+ },
+ {
+  "description": null,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "HD Ticket Type",
+  "is_system": 0,
+  "modified": "2026-06-12 14:21:59.481148",
+  "name": "IT - System Downtime",
+  "priority": "Urgent"
+ },
+ {
+  "description": null,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "HD Ticket Type",
+  "is_system": 0,
+  "modified": "2026-06-12 14:21:59.481547",
+  "name": "Compliance - Reporting",
+  "priority": "Medium"
+ },
+ {
+  "description": null,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "HD Ticket Type",
+  "is_system": 0,
+  "modified": "2026-06-12 14:21:59.481906",
+  "name": "Compliance - KYC",
+  "priority": "High"
+ }
+]

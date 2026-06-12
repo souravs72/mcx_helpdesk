@@ -1,0 +1,1 @@
+mcx_helpdesk.patches.v1_0.remove_legacy_helpdesk_teams
