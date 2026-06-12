@@ -5,16 +5,9 @@ import re
 
 import frappe
 
-TICKET_TYPE_TEAM = {
-	"Trading - Order Entry": "Trading",
-	"Trading - Margin Query": "Trading",
-	"Clearing - Settlement": "Clearing",
-	"Clearing - Payout": "Clearing",
-	"IT - Portal Access": "IT",
-	"IT - System Downtime": "IT",
-	"Compliance - Reporting": "Compliance",
-	"Compliance - KYC": "Compliance",
-}
+from mcx_helpdesk.constants import ISSUE_TYPES
+
+TICKET_TYPE_TEAM = {row[0]: row[2] for row in ISSUE_TYPES}
 
 KEYWORD_RULES = [
 	(["login", "password", "portal access", "unable to login"], "IT - Portal Access", "IT", "Login Issue"),
@@ -113,9 +106,12 @@ def _resolve_sub_issue(value, issue_type=None):
 	value = (value or "").strip()
 	if not value:
 		return None
-	filters = {"sub_issue_name": value}
-	if issue_type:
-		filters["issue_type"] = issue_type
+	if issue_type and frappe.db.exists("HD Sub Issue Type", {"sub_issue_name": value, "issue_type": issue_type}):
+		return frappe.db.get_value(
+			"HD Sub Issue Type",
+			{"sub_issue_name": value, "issue_type": issue_type},
+			"name",
+		)
 	if frappe.db.exists("HD Sub Issue Type", value):
 		return value
 	matches = frappe.get_all(

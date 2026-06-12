@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Compile Python
+        run: python -m compileall -f mcx_helpdesk
+
+      - name: Ruff
+        run: ruff check mcx_helpdesk
+
+      - name: Merge conflict markers
+        run: |
+          if grep -lr --exclude-dir=.git "^<<<<<<< " .; then
+            echo "Found merge conflict markers"
+            exit 1
+          fi

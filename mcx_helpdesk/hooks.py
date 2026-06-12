@@ -31,7 +31,26 @@ fixtures = [
 		"filters": [["name", "=", "Field Dependency-ticket_type-sub_issue_type"]],
 	},
 	{"dt": "HD Ticket Template", "filters": [["name", "=", "Default"]]},
-	{"dt": "HD Sub Issue Type"},
+	{
+		"dt": "HD Sub Issue Type",
+		"filters": [
+			[
+				"sub_issue_name",
+				"in",
+				[
+					"Order Rejection",
+					"Price Mismatch",
+					"Settlement Delay",
+					"Payout Pending",
+					"Login Issue",
+					"Password Reset",
+					"System Outage",
+					"Regulatory Filing",
+					"KYC Update",
+				],
+			]
+		],
+	},
 	{
 		"dt": "HD Ticket Type",
 		"filters": [
@@ -50,10 +69,6 @@ fixtures = [
 				],
 			]
 		],
-	},
-	{
-		"dt": "HD Team",
-		"filters": [["name", "in", ["Trading", "Clearing", "IT", "Compliance"]]],
 	},
 	{
 		"dt": "Translation",
@@ -83,7 +98,7 @@ fixtures = [
 	},
 ]
 
-after_install = "mcx_helpdesk.setup.install.after_install"
+after_install = "mcx_helpdesk.setup.sync.after_install"
 
 after_migrate = ["mcx_helpdesk.setup.sync.after_migrate"]
 
@@ -96,5 +111,3 @@ doc_events = {
 		"before_validate": "mcx_helpdesk.mcx_helpdesk.ticket_classifier.classify_ticket",
 	}
 }
-
-doctype_js = {"HD Ticket": "public/js/hd_ticket.js"}

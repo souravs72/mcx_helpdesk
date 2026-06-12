@@ -1,3 +1,7 @@
+[pre_model_sync]
+# Patches that must run before doctype schema sync (none yet).
+
+[post_model_sync]
 mcx_helpdesk.patches.v1_0.remove_legacy_helpdesk_teams
 mcx_helpdesk.patches.v1_0.setup_sub_issue_visibility
 mcx_helpdesk.patches.v1_0.setup_dashboard_labels
