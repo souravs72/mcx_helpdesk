@@ -110,5 +110,12 @@ doc_events = {
 	"HD Ticket": {
 		"before_validate": "mcx_helpdesk.mcx_helpdesk.ticket_classifier.classify_ticket",
 		"after_insert": "mcx_helpdesk.mcx_helpdesk.ticket_classifier.apply_classified_assignee",
+		"on_update": "mcx_helpdesk.mcx_helpdesk.escalation.on_ticket_update",
 	}
+}
+
+scheduler_events = {
+	"hourly_long": [
+		"mcx_helpdesk.mcx_helpdesk.escalation.process_sla_breach_escalations",
+	],
 }

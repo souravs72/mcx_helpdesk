@@ -6,8 +6,11 @@
 from __future__ import annotations
 
 import frappe
+from frappe.desk.form.assign_to import add as assign_to
+from frappe.utils import add_to_date, now_datetime
 
 from mcx_helpdesk.constants import TEAMS
+from mcx_helpdesk.setup.data_cleanup import cleanup_helpdesk_data
 from mcx_helpdesk.setup.install import ensure_agent, ensure_team, ensure_user
 
 AGENTS = [
@@ -121,16 +124,125 @@ ARTICLES = [
 	},
 ]
 
+DEMO_TICKETS = [
+	{
+		"subject": "Member portal login failing after password reset",
+		"description": "Member reports invalid credentials after completing password reset for Alpha Brokers trading account.",
+		"priority": "High",
+		"ticket_type": "IT - Portal Access",
+		"sub_issue_type": "Login Issue",
+		"agent_group": "IT",
+		"customer": "Alpha Brokers",
+		"contact_email": "priya@alphabrokers.com",
+		"status": "Open",
+		"assign_to": "mcx.it.agent@demo.com",
+	},
+	{
+		"subject": "Order rejected — insufficient margin for GOLDM contract",
+		"description": "Order for 2 lots GOLDM rejected at 09:42 IST. Member requests margin utilisation breakdown.",
+		"priority": "Medium",
+		"ticket_type": "Trading - Order Entry",
+		"sub_issue_type": "Order Rejection",
+		"agent_group": "Trading",
+		"customer": "Silver Trading Co",
+		"contact_email": "rajesh@silvertrading.com",
+		"status": "Open",
+		"assign_to": "mcx.trading.agent@demo.com",
+	},
+	{
+		"subject": "T+1 settlement not reflected for 10-Jun trades",
+		"description": "Golden Commodities Ltd confirms bank credit not received for trades settled on 10-Jun.",
+		"priority": "High",
+		"ticket_type": "Clearing - Settlement",
+		"sub_issue_type": "Settlement Delay",
+		"agent_group": "Clearing",
+		"customer": "Golden Commodities Ltd",
+		"contact_email": "fatima@goldencommodities.com",
+		"status": "Replied",
+		"assign_to": "mcx.clearing.agent@demo.com",
+		"first_responded_hours_ago": 2,
+	},
+	{
+		"subject": "KYC update pending — PAN document re-upload",
+		"description": "Member uploaded revised PAN for Ascra Technologies corporate account; status still showing pending.",
+		"priority": "High",
+		"ticket_type": "Compliance - KYC",
+		"sub_issue_type": "KYC Update",
+		"agent_group": "Compliance",
+		"customer": "Ascra Technologies",
+		"contact_email": "ahmadrehan610@gmail.com",
+		"status": "Open",
+		"assign_to": "mcx.compliance.agent@demo.com",
+	},
+	{
+		"subject": "Trading terminal disconnect during market hours",
+		"description": "Multiple users from Alpha Brokers lost connectivity to the trading terminal between 11:00–11:20 IST.",
+		"priority": "Urgent",
+		"ticket_type": "IT - System Downtime",
+		"sub_issue_type": "System Outage",
+		"agent_group": "IT",
+		"customer": "Alpha Brokers",
+		"contact_email": "priya@alphabrokers.com",
+		"status": "Open",
+		"assign_to": "souravsingh2609@gmail.com",
+	},
+	{
+		"subject": "Payout pending for MCX-CPO settlement cycle",
+		"description": "Silver Trading Co awaiting payout confirmation for CPO settlement dated 08-Jun.",
+		"priority": "High",
+		"ticket_type": "Clearing - Payout",
+		"sub_issue_type": "Payout Pending",
+		"agent_group": "Clearing",
+		"customer": "Silver Trading Co",
+		"contact_email": "rajesh@silvertrading.com",
+		"status": "Resolved",
+		"assign_to": "mcx.clearing.agent@demo.com",
+		"first_responded_hours_ago": 26,
+		"resolved_hours_ago": 4,
+	},
+	{
+		"subject": "Monthly regulatory filing — open interest report",
+		"description": "Compliance team query on format for June open interest submission to MCX.",
+		"priority": "Medium",
+		"ticket_type": "Compliance - Reporting",
+		"sub_issue_type": "Regulatory Filing",
+		"agent_group": "Compliance",
+		"customer": "Golden Commodities Ltd",
+		"contact_email": "fatima@goldencommodities.com",
+		"status": "Open",
+		"assign_to": "mcx.compliance.agent@demo.com",
+	},
+	{
+		"subject": "Margin query — peak margin vs available balance",
+		"description": "Rajesh Mehta requests clarification on peak margin calculation for SILVERM positions.",
+		"priority": "Medium",
+		"ticket_type": "Trading - Margin Query",
+		"sub_issue_type": "Price Mismatch",
+		"agent_group": "Trading",
+		"customer": "Silver Trading Co",
+		"contact_email": "rajesh@silvertrading.com",
+		"status": "Closed",
+		"assign_to": "mcx.trading.agent@demo.com",
+		"first_responded_hours_ago": 72,
+		"resolved_hours_ago": 48,
+	},
+]
+
+DEMO_TICKET_SENTINEL_SUBJECT = DEMO_TICKETS[0]["subject"]
+
 
 def seed_mcx_demo_data():
-	"""Create teams, agents, customers, contacts, and knowledge base articles."""
+	"""Create teams, agents, customers, contacts, knowledge base, and sample tickets."""
 	if "helpdesk" not in frappe.get_installed_apps():
 		frappe.throw("Helpdesk app is not installed on this site")
 
+	cleanup_helpdesk_data()
+	_reset_tickets_for_demo_seed()
 	seed_teams_and_agents()
 	seed_customers()
 	seed_contacts()
 	seed_knowledge_base()
+	ticket_count = seed_demo_tickets()
 
 	frappe.db.commit()
 	frappe.clear_cache()
@@ -140,6 +252,7 @@ def seed_mcx_demo_data():
 		"customers": len(CUSTOMERS),
 		"contacts": len(CONTACTS),
 		"articles": len(ARTICLES),
+		"tickets": ticket_count,
 	}
 
 
@@ -234,3 +347,71 @@ def seed_knowledge_base():
 				"content": article["content"].strip(),
 			}
 		).insert(ignore_permissions=True)
+
+
+def _reset_tickets_for_demo_seed():
+	"""Remove all tickets when seeding curated demo data for the first time."""
+	from mcx_helpdesk.setup.data_cleanup import _delete_ticket
+
+	if frappe.db.exists("HD Ticket", {"subject": DEMO_TICKET_SENTINEL_SUBJECT}):
+		return
+	for name in frappe.get_all("HD Ticket", pluck="name"):
+		_delete_ticket(name)
+
+
+def seed_demo_tickets() -> int:
+	"""Seed realistic MCX support tickets (skipped if sentinel ticket already exists)."""
+	if frappe.db.exists("HD Ticket", {"subject": DEMO_TICKET_SENTINEL_SUBJECT}):
+		return len(DEMO_TICKETS)
+
+	created = 0
+	for row in DEMO_TICKETS:
+		contact = frappe.db.get_value("Contact", {"email_id": row["contact_email"]}, "name")
+		ticket = frappe.get_doc(
+			{
+				"doctype": "HD Ticket",
+				"subject": row["subject"],
+				"description": row["description"],
+				"priority": row["priority"],
+				"ticket_type": row["ticket_type"],
+				"sub_issue_type": row.get("sub_issue_type"),
+				"agent_group": row["agent_group"],
+				"customer": row["customer"],
+				"contact": contact,
+				"raised_by": row["contact_email"],
+				"status": row["status"],
+			}
+		)
+		ticket.insert(ignore_permissions=True)
+
+		updates = {}
+		if row.get("first_responded_hours_ago"):
+			responded_at = add_to_date(now_datetime(), hours=-row["first_responded_hours_ago"], as_datetime=True)
+			updates["first_responded_on"] = responded_at
+		if row.get("resolved_hours_ago"):
+			resolved_at = add_to_date(now_datetime(), hours=-row["resolved_hours_ago"], as_datetime=True)
+			updates["resolution_date"] = resolved_at
+			if "first_responded_on" not in updates:
+				updates["first_responded_on"] = add_to_date(resolved_at, hours=-2, as_datetime=True)
+
+		if updates:
+			ticket = frappe.get_doc("HD Ticket", ticket.name)
+			for field, value in updates.items():
+				ticket.set(field, value)
+			ticket.save(ignore_permissions=True)
+
+		if row.get("assign_to") and frappe.db.exists("HD Agent", row["assign_to"]):
+			assign_to({"assign_to": [row["assign_to"]], "doctype": "HD Ticket", "name": ticket.name})
+
+		if row["status"] != "Open":
+			frappe.db.set_value(
+				"HD Ticket",
+				ticket.name,
+				"status",
+				row["status"],
+				update_modified=False,
+			)
+
+		created += 1
+
+	return created

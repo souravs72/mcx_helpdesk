@@ -39,3 +39,34 @@ DEMO_AGENTS = [
 ]
 
 LEGACY_TEAMS = ["Billing", "Product Experts"]
+
+PRIORITY_LADDER = ["Low", "Medium", "High", "Urgent"]
+
+# Hours before re-escalating to the next level while SLA remains breached.
+REESCALATE_AFTER_HOURS = 4
+
+# L1 = department supervisor, L2 = department head; L3 = country head (shared).
+ESCALATION_SUPERVISORS = {
+	"IT": [
+		{"email": "souravsingh2609@gmail.com", "full_name": "IT Supervisor", "level": "L1"},
+		{"email": "mcx.it.head@demo.com", "full_name": "IT Department Head", "level": "L2"},
+	],
+	"Trading": [
+		{"email": "mcx.trading.supervisor@demo.com", "full_name": "Trading Supervisor", "level": "L1"},
+		{"email": "mcx.trading.head@demo.com", "full_name": "Trading Department Head", "level": "L2"},
+	],
+	"Clearing": [
+		{"email": "mcx.clearing.supervisor@demo.com", "full_name": "Clearing Supervisor", "level": "L1"},
+		{"email": "mcx.clearing.head@demo.com", "full_name": "Clearing Department Head", "level": "L2"},
+	],
+	"Compliance": [
+		{"email": "mcx.compliance.supervisor@demo.com", "full_name": "Compliance Supervisor", "level": "L1"},
+		{"email": "mcx.compliance.head@demo.com", "full_name": "Compliance Department Head", "level": "L2"},
+	],
+}
+
+COUNTRY_HEAD = {
+	"email": "mcx.country.head@demo.com",
+	"full_name": "MCX Country Head",
+	"level": "L3",
+}

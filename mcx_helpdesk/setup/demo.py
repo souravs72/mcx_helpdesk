@@ -8,13 +8,7 @@ from __future__ import annotations
 import frappe
 
 from mcx_helpdesk.constants import DEMO_AGENTS, TEAMS
-from mcx_helpdesk.setup.install import (
-	configure_email_account,
-	configure_hd_settings,
-	ensure_agent,
-	ensure_team,
-	ensure_user,
-)
+from mcx_helpdesk.setup.install import ensure_agent, ensure_team, ensure_user
 
 
 def is_demo_mode_enabled() -> bool:
@@ -28,8 +22,6 @@ def setup_demo_site():
 		return
 
 	setup_demo_agents_and_teams()
-	configure_email_account()
-	configure_hd_settings(force_ack_template=True)
 
 
 def setup_demo_agents_and_teams():

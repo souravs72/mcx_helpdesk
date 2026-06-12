@@ -7,7 +7,7 @@
    "insert_after": "ticket_type",
    "label": "Sub Issue Type",
    "options": "HD Sub Issue Type",
-   "depends_on": "eval:doc.ticket_type != ''",
+   "depends_on": "eval:doc.ticket_type",
    "in_list_view": 1,
    "in_standard_filter": 1
   }

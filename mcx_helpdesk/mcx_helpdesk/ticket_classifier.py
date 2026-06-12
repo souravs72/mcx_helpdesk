@@ -13,8 +13,8 @@ TICKET_TYPE_TEAM = {row[0]: row[2] for row in ISSUE_TYPES}
 KEYWORD_RULES = [
 	(["login", "password", "portal access", "unable to login"], "IT - Portal Access", "IT", "Login Issue"),
 	(["system down", "outage", "downtime", "not working"], "IT - System Downtime", "IT", "System Outage"),
-	(["settlement", "clearing delay"], "Clearing - Settlement", "Clearing", "Settlement Delay"),
 	(["payout", "payment pending"], "Clearing - Payout", "Clearing", "Payout Pending"),
+	(["settlement", "clearing delay"], "Clearing - Settlement", "Clearing", "Settlement Delay"),
 	(["order reject", "order entry", "trade reject"], "Trading - Order Entry", "Trading", "Order Rejection"),
 	(["margin", "price mismatch"], "Trading - Margin Query", "Trading", "Price Mismatch"),
 	(["kyc", "know your customer"], "Compliance - KYC", "Compliance", "KYC Update"),

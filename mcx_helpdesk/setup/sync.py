@@ -8,11 +8,16 @@ from __future__ import annotations
 import frappe
 
 from mcx_helpdesk.setup.dashboard_labels import ensure_dashboard_labels
+from mcx_helpdesk.setup.data_cleanup import cleanup_helpdesk_data
 from mcx_helpdesk.setup.demo import setup_demo_site
+from mcx_helpdesk.setup.escalation import ensure_escalation_setup
 from mcx_helpdesk.setup.install import (
+	configure_email_account,
+	configure_hd_settings,
 	disable_legacy_teams,
 	ensure_custom_field_metadata,
 	ensure_custom_fields,
+	ensure_default_sla,
 	ensure_issue_types,
 	ensure_labels,
 	ensure_sub_issue_field_dependency,
@@ -35,6 +40,11 @@ def sync_mcx_helpdesk():
 	ensure_sub_issue_field_dependency()
 	disable_legacy_teams()
 	ensure_dashboard_labels()
+	cleanup_helpdesk_data()
+	ensure_default_sla()
+	configure_hd_settings()
+	configure_email_account()
+	ensure_escalation_setup()
 
 	frappe.db.commit()
 	_clear_caches()

@@ -19,7 +19,7 @@ def ensure_custom_fields():
 					"fieldtype": "Link",
 					"options": "HD Sub Issue Type",
 					"insert_after": "ticket_type",
-					"depends_on": "eval:doc.ticket_type != ''",
+					"depends_on": "eval:doc.ticket_type",
 					"in_list_view": 1,
 					"in_standard_filter": 1,
 				}
@@ -37,7 +37,8 @@ def ensure_custom_field_metadata():
 		"Custom Field",
 		"HD Ticket-sub_issue_type",
 		{
-			"depends_on": "eval:doc.ticket_type != ''",
+			"depends_on": "eval:doc.ticket_type",
+			"link_filters": None,
 			"in_list_view": 1,
 			"in_standard_filter": 1,
 		},
@@ -99,22 +100,49 @@ def ensure_sub_issue_types():
 
 
 def ensure_ticket_template_field():
+	"""Add Issue Type + Sub Issue Type to the Default new-ticket form (in order)."""
 	if not frappe.db.exists("HD Ticket Template", "Default"):
 		return
 	template = frappe.get_doc("HD Ticket Template", "Default")
-	if any(row.fieldname == "sub_issue_type" for row in template.fields):
-		return
-	template.append(
-		"fields",
+	existing = {row.fieldname: row for row in template.fields}
+
+	specs = [
 		{
-			"label": "Sub Issue Type",
-			"fieldname": "sub_issue_type",
-			"fieldtype": "Link",
-			"options": "HD Sub Issue Type",
+			"fieldname": "ticket_type",
+			"idx": 1,
+			"placeholder": "Select issue type",
 			"required": 0,
 		},
-	)
-	template.save(ignore_permissions=True)
+		{
+			"fieldname": "sub_issue_type",
+			"idx": 2,
+			"placeholder": "Select sub issue",
+			"required": 0,
+		},
+	]
+
+	changed = False
+	for spec in specs:
+		if spec["fieldname"] in existing:
+			row = existing[spec["fieldname"]]
+			if row.idx != spec["idx"] or row.placeholder != spec["placeholder"]:
+				row.idx = spec["idx"]
+				row.placeholder = spec["placeholder"]
+				changed = True
+			continue
+		template.append(
+			"fields",
+			{
+				"fieldname": spec["fieldname"],
+				"placeholder": spec["placeholder"],
+				"required": spec["required"],
+				"idx": spec["idx"],
+			},
+		)
+		changed = True
+
+	if changed:
+		template.save(ignore_permissions=True)
 
 
 def ensure_sub_issue_field_dependency():
@@ -157,11 +185,16 @@ def disable_legacy_teams():
 def ensure_user(email: str, full_name: str, password: str = "demo@123"):
 	if frappe.db.exists("User", email):
 		return
+	parts = full_name.split(None, 1)
+	first_name = parts[0]
+	last_name = parts[1] if len(parts) > 1 else ""
 	user = frappe.get_doc(
 		{
 			"doctype": "User",
 			"email": email,
-			"first_name": full_name,
+			"first_name": first_name,
+			"last_name": last_name,
+			"full_name": full_name,
 			"send_welcome_email": 0,
 			"user_type": "System User",
 		}
@@ -198,7 +231,7 @@ def ensure_team(name: str, users: list[str]):
 
 
 def configure_email_account():
-	"""Point incoming mail at HD Ticket (demo sites)."""
+	"""Point incoming mail at HD Ticket."""
 	for account in frappe.get_all("Email Account", filters={"enable_incoming": 1}, pluck="name"):
 		doc = frappe.get_doc("Email Account", account)
 		if doc.append_to == "HD Ticket":
@@ -207,20 +240,100 @@ def configure_email_account():
 		doc.save(ignore_permissions=True)
 
 
-def configure_hd_settings(force_ack_template: bool = False):
-	"""Set HD Settings defaults; only overwrite ack template when explicitly requested."""
+def configure_hd_settings():
+	"""Apply MCX Helpdesk HD Settings defaults (idempotent)."""
 	settings = frappe.get_doc("HD Settings", "HD Settings")
 	changed = False
 
-	if not settings.default_ticket_type:
+	if not settings.default_ticket_type or not frappe.db.exists(
+		"HD Ticket Type", settings.default_ticket_type
+	):
 		settings.default_ticket_type = "IT - Portal Access"
 		changed = True
-	if not settings.default_priority:
-		settings.default_priority = "Medium"
-		changed = True
-	if force_ack_template or not settings.auto_acknowledgement_email_template:
-		settings.auto_acknowledgement_email_template = "Acknowledgement"
+
+	desired = {
+		"default_priority": "Medium",
+		"send_acknowledgement_email": 1,
+		"restrict_tickets_by_agent_group": 1,
+		"assign_within_team": 1,
+		"setup_complete": 1,
+		"enable_reply_email_via_agent": 1,
+	}
+
+	for field, value in desired.items():
+		if settings.get(field) == value:
+			continue
+		settings.set(field, value)
 		changed = True
 
 	if changed:
 		settings.save(ignore_permissions=True)
+
+
+def ensure_default_sla():
+	"""Ensure Default SLA exists and tracks response + resolution."""
+	try:
+		from helpdesk.setup.install import add_default_holiday_list, add_default_sla, add_default_ticket_priorities
+	except ImportError:
+		return
+
+	add_default_ticket_priorities()
+	add_default_holiday_list()
+
+	if not frappe.db.exists("HD Service Level Agreement", "Default"):
+		add_default_sla()
+		return
+
+	sla = frappe.get_doc("HD Service Level Agreement", "Default")
+	changed = False
+
+	for field, value in {
+		"enabled": 1,
+		"default_sla": 1,
+		"apply_sla_for_resolution": 1,
+		"holiday_list": "Default",
+	}.items():
+		if sla.get(field) != value:
+			sla.set(field, value)
+			changed = True
+
+	expected_priorities = {
+		"Low": (86400, 259200),
+		"Medium": (28800, 86400),
+		"High": (3600, 14400),
+		"Urgent": (1800, 7200),
+	}
+	existing = {row.priority: row for row in sla.priorities}
+	for priority, (response_time, resolution_time) in expected_priorities.items():
+		row = existing.get(priority)
+		if not row:
+			sla.append(
+				"priorities",
+				{
+					"priority": priority,
+					"response_time": response_time,
+					"resolution_time": resolution_time,
+					"default_priority": 1 if priority == "Medium" else 0,
+				},
+			)
+			changed = True
+			continue
+		if row.response_time != response_time or row.resolution_time != resolution_time:
+			row.response_time = response_time
+			row.resolution_time = resolution_time
+			changed = True
+
+	if not sla.support_and_resolution:
+		for day in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]:
+			sla.append(
+				"support_and_resolution",
+				{
+					"workday": day,
+					"start_time": "10:00:00",
+					"end_time": "18:00:00",
+				},
+			)
+		changed = True
+
+	if changed:
+		sla.save(ignore_permissions=True)
