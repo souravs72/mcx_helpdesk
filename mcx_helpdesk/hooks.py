@@ -26,6 +26,11 @@ fixtures = [
 			]
 		],
 	},
+	{
+		"dt": "HD Form Script",
+		"filters": [["name", "=", "Field Dependency-ticket_type-sub_issue_type"]],
+	},
+	{"dt": "HD Ticket Template", "filters": [["name", "=", "Default"]]},
 	{"dt": "DocType", "filters": [["name", "=", "HD Sub Issue Type"]]},
 	{"dt": "HD Sub Issue Type"},
 	{

@@ -1,0 +1,20 @@
+[
+ {
+  "about": null,
+  "description_template": null,
+  "docstatus": 0,
+  "doctype": "HD Ticket Template",
+  "fields": [
+   {
+    "fieldname": "sub_issue_type",
+    "hide_from_customer": 0,
+    "placeholder": "Select sub issue for the chosen issue type",
+    "required": 0,
+    "url_method": null
+   }
+  ],
+  "modified": "2026-06-12 14:31:03.451173",
+  "name": "Default",
+  "template_name": "Default"
+ }
+]

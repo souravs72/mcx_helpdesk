@@ -44,6 +44,8 @@ def after_install():
 	ensure_labels()
 	ensure_issue_types()
 	ensure_sub_issue_types()
+	ensure_ticket_template_field()
+	ensure_sub_issue_field_dependency()
 	disable_legacy_teams()
 	setup_demo_agents_and_teams()
 	configure_email_account()
@@ -63,18 +65,69 @@ def ensure_custom_fields():
 					"insert_after": "ticket_type",
 					"in_list_view": 1,
 					"in_standard_filter": 1,
+					"depends_on": "eval:doc.ticket_type",
+					"link_filters": '[["HD Sub Issue Type","issue_type","=","eval:doc.ticket_type"]]',
 				}
 			]
 		},
 		ignore_validate=True,
+		update=True,
+	)
+
+
+def ensure_ticket_template_field():
+	"""Register Sub Issue Type on Default template so Helpdesk desk UI shows it."""
+	if not frappe.db.exists("HD Ticket Template", "Default"):
+		return
+
+	template = frappe.get_doc("HD Ticket Template", "Default")
+	existing = {row.fieldname for row in template.fields}
+	if "sub_issue_type" in existing:
+		return
+
+	template.append(
+		"fields",
+		{
+			"fieldname": "sub_issue_type",
+			"required": 0,
+			"hide_from_customer": 0,
+			"placeholder": "Select sub issue for the chosen issue type",
+		},
+	)
+	template.save(ignore_permissions=True)
+
+
+def get_sub_issue_mapping():
+	mapping: dict[str, list[str]] = {}
+	for sub_issue_name, issue_type in SUB_ISSUE_TYPES:
+		mapping.setdefault(issue_type, []).append(sub_issue_name)
+	return mapping
+
+
+def ensure_sub_issue_field_dependency():
+	"""Filter Sub Issue Type options by selected Issue Type in Helpdesk UI."""
+	from helpdesk.api.settings.field_dependency import create_update_field_dependency
+
+	mapping = get_sub_issue_mapping()
+	fields_criteria = {
+		"display": {"enabled": True, "value": [{"label": "Any", "value": "Any"}]},
+		"mandatory": {"enabled": False, "value": []},
+	}
+
+	create_update_field_dependency(
+		parent_field="ticket_type",
+		child_field="sub_issue_type",
+		parent_child_mapping=frappe.as_json(mapping),
+		enabled=True,
+		fields_criteria=frappe.as_json(fields_criteria),
 	)
 
 
 def ensure_labels():
 	labels = [
 		("HD Ticket", "ticket_type", "Issue Type"),
-		("HD Ticket", "agent_group", "Team"),
-		("HD Team", "team_name", "Team Name"),
+		("HD Ticket", "agent_group", "Department"),
+		("HD Team", "team_name", "Department Name"),
 	]
 	for doctype, fieldname, label in labels:
 		name = f"{doctype}-{fieldname}-label"

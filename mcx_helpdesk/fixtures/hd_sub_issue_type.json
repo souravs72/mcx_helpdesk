@@ -3,7 +3,7 @@
   "docstatus": 0,
   "doctype": "HD Sub Issue Type",
   "issue_type": "Trading - Order Entry",
-  "modified": "2026-06-12 14:21:59.482461",
+  "modified": "2026-06-12 14:31:03.371795",
   "name": "Order Rejection",
   "sub_issue_name": "Order Rejection"
  },
@@ -11,7 +11,7 @@
   "docstatus": 0,
   "doctype": "HD Sub Issue Type",
   "issue_type": "Trading - Margin Query",
-  "modified": "2026-06-12 14:21:59.482892",
+  "modified": "2026-06-12 14:31:03.372734",
   "name": "Price Mismatch",
   "sub_issue_name": "Price Mismatch"
  },
@@ -19,7 +19,7 @@
   "docstatus": 0,
   "doctype": "HD Sub Issue Type",
   "issue_type": "Clearing - Settlement",
-  "modified": "2026-06-12 14:21:59.483303",
+  "modified": "2026-06-12 14:31:03.373667",
   "name": "Settlement Delay",
   "sub_issue_name": "Settlement Delay"
  },
@@ -27,7 +27,7 @@
   "docstatus": 0,
   "doctype": "HD Sub Issue Type",
   "issue_type": "Clearing - Payout",
-  "modified": "2026-06-12 14:21:59.483796",
+  "modified": "2026-06-12 14:31:03.374419",
   "name": "Payout Pending",
   "sub_issue_name": "Payout Pending"
  },
@@ -35,7 +35,7 @@
   "docstatus": 0,
   "doctype": "HD Sub Issue Type",
   "issue_type": "IT - Portal Access",
-  "modified": "2026-06-12 14:21:59.484344",
+  "modified": "2026-06-12 14:31:03.376074",
   "name": "Login Issue",
   "sub_issue_name": "Login Issue"
  },
@@ -43,7 +43,7 @@
   "docstatus": 0,
   "doctype": "HD Sub Issue Type",
   "issue_type": "IT - Portal Access",
-  "modified": "2026-06-12 14:21:59.484815",
+  "modified": "2026-06-12 14:31:03.377651",
   "name": "Password Reset",
   "sub_issue_name": "Password Reset"
  },
@@ -51,7 +51,7 @@
   "docstatus": 0,
   "doctype": "HD Sub Issue Type",
   "issue_type": "IT - System Downtime",
-  "modified": "2026-06-12 14:21:59.485259",
+  "modified": "2026-06-12 14:31:03.378691",
   "name": "System Outage",
   "sub_issue_name": "System Outage"
  },
@@ -59,7 +59,7 @@
   "docstatus": 0,
   "doctype": "HD Sub Issue Type",
   "issue_type": "Compliance - Reporting",
-  "modified": "2026-06-12 14:21:59.485744",
+  "modified": "2026-06-12 14:31:03.379669",
   "name": "Regulatory Filing",
   "sub_issue_name": "Regulatory Filing"
  },
@@ -67,7 +67,7 @@
   "docstatus": 0,
   "doctype": "HD Sub Issue Type",
   "issue_type": "Compliance - KYC",
-  "modified": "2026-06-12 14:21:59.486141",
+  "modified": "2026-06-12 14:31:03.380669",
   "name": "KYC Update",
   "sub_issue_name": "KYC Update"
  }
