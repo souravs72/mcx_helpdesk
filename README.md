@@ -17,6 +17,14 @@ bench --site mcx.site install-app mcx_helpdesk
 bench --site mcx.site migrate
 ```
 
+On **install** and every **migrate**, `sync_mcx_helpdesk()` runs automatically and:
+
+- Applies Custom Fields, Property Setters, and Translations (fixtures + sync)
+- Sets up Issue Types, Sub Issue Types, Departments (HD Teams), and demo agents
+- Configures email-to-ticket, field dependencies, and dashboard/list labels
+
+Export fixtures after site changes: `bench --site mcx.site export-fixtures`
+
 ## Email subject format (demo)
 
 ```
