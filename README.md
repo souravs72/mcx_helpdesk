@@ -9,6 +9,7 @@ Custom Frappe app extending [Frappe Helpdesk](https://github.com/frappe/helpdesk
 - **Assignment routing**: Uses native HD Team assignment rules (round-robin per department)
 - **Cascading filters**: Sub Issue Type filtered by Issue Type on the ticket form
 - **UI relabeling**: Team → Department, Ticket Type → Issue Type (Property Setters, Translations, dashboard API)
+- **Desk UI overrides**: Custom Dashboard, ticket form, and detail views live in `desk/overrides/` and are applied at **build time** without modifying the Helpdesk app source
 
 ## Requirements
 
@@ -141,6 +142,36 @@ python -m compileall -f mcx_helpdesk
 ruff check mcx_helpdesk
 bench --site your.site run-tests --app mcx_helpdesk
 ```
+
+### Desk UI overrides
+
+MCX customizes Helpdesk Vue pages from this app only — **never edit `apps/helpdesk/desk/src` directly**.
+
+| Override | Helpdesk path |
+|----------|----------------|
+| Dashboard | `@/pages/dashboard/Dashboard.vue` |
+| New ticket | `@/pages/ticket/TicketNew.vue` |
+| Ticket details tab | `@/components/ticket-agent/TicketDetailsTab.vue` |
+
+Add a file under `desk/overrides/` mirroring the Helpdesk `@/` path (e.g. `desk/overrides/pages/dashboard/Dashboard.vue`).
+
+Use `@/` imports inside override files (not `./Relative.vue`) so the build-time staging step resolves dependencies correctly.
+
+Build after UI changes (`mcx_helpdesk` must be built **after** `helpdesk` in `sites/apps.txt`):
+
+```bash
+bench build --app mcx_helpdesk
+# or
+./apps/mcx_helpdesk/scripts/apply_helpdesk_ui.sh
+```
+
+Local dev with overrides:
+
+```bash
+cd apps/mcx_helpdesk && yarn dev
+```
+
+Backend API overrides use Frappe hooks (`override_whitelisted_methods` in `hooks.py`).
 
 ## License
 

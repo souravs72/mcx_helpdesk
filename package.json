@@ -1,0 +1,9 @@
+{
+	"private": true,
+	"name": "mcx_helpdesk",
+	"type": "module",
+	"scripts": {
+		"build": "node desk/build.mjs",
+		"dev": "node desk/dev.mjs"
+	}
+}

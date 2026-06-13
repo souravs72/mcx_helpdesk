@@ -159,10 +159,10 @@ import { useStorage } from "@vueuse/core";
 import { dayjs, Tooltip } from "frappe-ui";
 import { computed, inject, ref } from "vue";
 import LucideChevronRight from "~icons/lucide/chevron-right";
-import Section from "../Section.vue";
-import TicketField from "../TicketField.vue";
-import AssignTo from "./AssignTo.vue";
-import TicketContact from "./TicketContact.vue";
+import Section from "@/components/Section.vue";
+import TicketField from "@/components/TicketField.vue";
+import AssignTo from "@/components/ticket-agent/AssignTo.vue";
+import TicketContact from "@/components/ticket-agent/TicketContact.vue";
 
 const ticket = inject(TicketSymbol)!;
 const assignees = inject(AssigneeSymbol)!;

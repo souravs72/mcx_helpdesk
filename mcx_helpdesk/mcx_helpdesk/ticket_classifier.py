@@ -1,25 +1,23 @@
 # Copyright (c) 2026, Ascra Technologies LLP and contributors
 # For license information, please see license.txt
 
+"""Temporary regex/tag email classifier — replace with AI agent later."""
+
+from __future__ import annotations
+
 import re
+from email.utils import parseaddr
 
 import frappe
 from frappe.desk.form.assign_to import add as assign
 
-from mcx_helpdesk.constants import ISSUE_TYPES
-
-TICKET_TYPE_TEAM = {row[0]: row[2] for row in ISSUE_TYPES}
-
-KEYWORD_RULES = [
-	(["login", "password", "portal access", "unable to login"], "IT - Portal Access", "IT", "Login Issue"),
-	(["system down", "outage", "downtime", "not working"], "IT - System Downtime", "IT", "System Outage"),
-	(["payout", "payment pending"], "Clearing - Payout", "Clearing", "Payout Pending"),
-	(["settlement", "clearing delay"], "Clearing - Settlement", "Clearing", "Settlement Delay"),
-	(["order reject", "order entry", "trade reject"], "Trading - Order Entry", "Trading", "Order Rejection"),
-	(["margin", "price mismatch"], "Trading - Margin Query", "Trading", "Price Mismatch"),
-	(["kyc", "know your customer"], "Compliance - KYC", "Compliance", "KYC Update"),
-	(["regulatory", "compliance report", "reporting"], "Compliance - Reporting", "Compliance", "Regulatory Filing"),
-]
+from mcx_helpdesk.constants import (
+	CUSTOMER_KEYWORD_RULES,
+	EMAIL_KEYWORD_RULES,
+	ISSUE_TYPE_PRIORITY,
+	TEAM_DEFAULT_AGENTS,
+	TICKET_TYPE_TEAM,
+)
 
 # Subject/body tags — aliases in parentheses
 TAG_RE = re.compile(
@@ -27,17 +25,24 @@ TAG_RE = re.compile(
 	re.I,
 )
 
+SYSTEM_SENDER_RE = re.compile(
+	r"mailer-daemon|mail-daemon|postmaster|noreply|no-reply|donotreply",
+	re.I,
+)
+
 
 def classify_ticket(doc, _method=None):
-	"""Auto-set classification fields from email subject/body tags or keywords."""
+	"""Auto-set sidebar fields from email subject/body tags or keyword rules."""
 	if doc.doctype != "HD Ticket":
 		return
 	if not doc.get("subject") and not doc.get("description"):
 		return
+	if _is_system_sender(doc.get("raised_by")) and not _has_classification_tags(doc):
+		return
 
 	subject = doc.subject or ""
 	tag_source = _tag_source_text(subject, doc.description or "")
-	text = f"{subject} {frappe.utils.strip_html(doc.description or '')[:1000]}".lower()
+	text = _classification_text(subject, doc.description or "")
 
 	team = None
 	issue_type = None
@@ -60,7 +65,7 @@ def classify_ticket(doc, _method=None):
 			assignee = _resolve_assignee(value) or assignee
 
 	if not issue_type or not team or not sub_issue:
-		for keywords, rule_issue, rule_team, rule_sub in KEYWORD_RULES:
+		for keywords, rule_issue, rule_team, rule_sub in EMAIL_KEYWORD_RULES:
 			if any(word in text for word in keywords):
 				issue_type = issue_type or rule_issue
 				team = team or rule_team
@@ -84,10 +89,24 @@ def classify_ticket(doc, _method=None):
 		resolved_sub = _resolve_sub_issue(sub_issue, doc.ticket_type)
 		if resolved_sub:
 			doc.sub_issue_type = resolved_sub
+
+	if not customer:
+		customer = (
+			_resolve_customer_from_email(doc.get("raised_by"))
+			or _resolve_customer_from_keywords(text)
+		)
 	if customer:
 		doc.customer = customer
+
 	if assignee:
 		doc.flags.mcx_assignee = assignee
+	elif team and not doc.flags.get("mcx_assignee"):
+		default_agent = TEAM_DEFAULT_AGENTS.get(team)
+		if default_agent and frappe.db.exists("HD Agent", default_agent):
+			doc.flags.mcx_assignee = default_agent
+
+	if doc.ticket_type:
+		doc.priority = ISSUE_TYPE_PRIORITY.get(doc.ticket_type) or doc.priority
 
 	if TAG_RE.search(tag_source):
 		doc.subject = _clean_subject(subject, tag_source)
@@ -100,16 +119,35 @@ def apply_classified_assignee(doc, _method=None):
 		return
 	if not frappe.db.exists("HD Agent", assignee):
 		return
+	if _has_open_assignment(doc.name):
+		return
 
 	assign(
 		{
 			"assign_to": [assignee],
 			"doctype": "HD Ticket",
 			"name": doc.name,
-			"description": "Assigned from email classification tags",
+			"description": "Assigned from email classification",
 		},
 		ignore_permissions=True,
 	)
+
+
+def _has_classification_tags(doc) -> bool:
+	tag_source = _tag_source_text(doc.subject or "", doc.description or "")
+	return bool(TAG_RE.search(tag_source))
+
+
+def _is_system_sender(raised_by: str | None) -> bool:
+	if not raised_by:
+		return False
+	email = parseaddr(raised_by)[1] or raised_by
+	return bool(SYSTEM_SENDER_RE.search(email))
+
+
+def _classification_text(subject: str, description: str) -> str:
+	plain = frappe.utils.strip_html(description or "")
+	return f"{subject} {plain}".lower()
 
 
 def _tag_source_text(subject, description):
@@ -123,6 +161,40 @@ def _tag_source_text(subject, description):
 				parts.append(line)
 				break
 	return " ".join(parts)
+
+
+def _resolve_customer_from_email(raised_by: str | None) -> str | None:
+	if not raised_by:
+		return None
+	email = parseaddr(raised_by)[1] or raised_by
+	if "@" not in email:
+		return None
+	domain = email.split("@", 1)[1].lower()
+	if not domain or SYSTEM_SENDER_RE.search(domain):
+		return None
+
+	customer = frappe.db.get_value("HD Customer", {"domain": domain}, "name")
+	if customer:
+		return customer
+
+	contact = frappe.db.get_value("Contact", {"email_id": email}, "name")
+	if contact:
+		from helpdesk.utils import get_customer
+
+		linked = get_customer(contact)
+		if len(linked) == 1:
+			return linked[0]
+
+	return _resolve_customer(domain.split(".")[0])
+
+
+def _resolve_customer_from_keywords(text: str) -> str | None:
+	for keywords, customer_name in CUSTOMER_KEYWORD_RULES:
+		if any(word in text for word in keywords):
+			resolved = _resolve_customer(customer_name)
+			if resolved:
+				return resolved
+	return None
 
 
 def _resolve_issue_type(value):
@@ -221,10 +293,23 @@ def _resolve_assignee(value):
 	return name_matches[0] if name_matches else None
 
 
+def _has_open_assignment(ticket_name: str) -> bool:
+	return bool(
+		frappe.get_all(
+			"ToDo",
+			filters={
+				"reference_type": "HD Ticket",
+				"reference_name": ticket_name,
+				"status": "Open",
+			},
+			limit=1,
+		)
+	)
+
+
 def _clean_subject(subject, tag_source):
 	if not subject:
 		return subject
-	# Only strip tags that appear in subject (keep body tags out of stored subject)
 	cleaned = TAG_RE.sub("", subject).strip()
 	cleaned = re.sub(r"\s+", " ", cleaned)
 	return cleaned or subject

@@ -24,6 +24,10 @@ from mcx_helpdesk.setup.install import (
 	ensure_sub_issue_types,
 	ensure_ticket_template_field,
 )
+from mcx_helpdesk.setup.permissions import (
+	ensure_hd_notification_permissions,
+	ensure_helpdesk_report_roles,
+)
 
 
 def sync_mcx_helpdesk():
@@ -40,6 +44,8 @@ def sync_mcx_helpdesk():
 	ensure_sub_issue_field_dependency()
 	disable_legacy_teams()
 	ensure_dashboard_labels()
+	ensure_hd_notification_permissions()
+	ensure_helpdesk_report_roles()
 	cleanup_helpdesk_data()
 	ensure_default_sla()
 	configure_hd_settings()

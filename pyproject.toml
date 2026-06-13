@@ -17,6 +17,12 @@ build-backend = "flit_core.buildapi"
 frappe = ">=16.0.0,<=17.0.0-dev"
 helpdesk = ">=1.0.0"
 
+# Rebuilds Helpdesk desk SPA with MCX UI overrides from desk/overrides/.
+# Run: bench build --app mcx_helpdesk  (after helpdesk is installed)
+[tool.bench.assets]
+build_dir = "./desk"
+out_dir = "../helpdesk/helpdesk/public/desk"
+
 [tool.ruff]
 line-length = 110
 target-version = "py310"

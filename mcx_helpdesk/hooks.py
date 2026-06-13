@@ -1,8 +1,8 @@
 app_name = "mcx_helpdesk"
 app_title = "MCX Helpdesk"
 app_publisher = "Ascra Technologies LLP"
-app_description = "MCX Helpdesk customizations for RFP demo (classification and routing)"
-app_email = "info@ascra.com"
+app_description = "Helpdesk customizations"
+app_email = "sourav@clapgrow.com"
 app_license = "mit"
 
 required_apps = ["helpdesk"]
@@ -104,7 +104,11 @@ after_migrate = ["mcx_helpdesk.setup.sync.after_migrate"]
 
 override_whitelisted_methods = {
 	"helpdesk.api.dashboard.get_dashboard_data": "mcx_helpdesk.api.dashboard.get_dashboard_data",
+	"helpdesk.api.article.search": "mcx_helpdesk.api.article.search",
 }
+
+# Desk UI: override Helpdesk Vue files from desk/overrides/ at build time.
+# Run: bench build --app mcx_helpdesk
 
 doc_events = {
 	"HD Ticket": {

@@ -5,6 +5,9 @@
 
 TEAMS = ["Trading", "Clearing", "IT", "Compliance"]
 
+# Helpdesk default HD Team records to disable on MCX sites (none by default).
+LEGACY_TEAMS: list[str] = []
+
 ISSUE_TYPES = [
 	("Trading - Order Entry", "Medium", "Trading"),
 	("Trading - Margin Query", "Medium", "Trading"),
@@ -38,7 +41,82 @@ DEMO_AGENTS = [
 	{"email": "mcx.compliance.agent@demo.com", "full_name": "MCX Compliance Agent", "team": "Compliance"},
 ]
 
-LEGACY_TEAMS = ["Billing", "Product Experts"]
+ISSUE_TYPE_PRIORITY = {row[0]: row[1] for row in ISSUE_TYPES}
+TICKET_TYPE_TEAM = {row[0]: row[2] for row in ISSUE_TYPES}
+
+# Default assignee per department when email has no [ASSIGN:…] tag.
+TEAM_DEFAULT_AGENTS = {
+	"IT": "mcx.it.agent@demo.com",
+	"Trading": "mcx.trading.agent@demo.com",
+	"Clearing": "mcx.clearing.agent@demo.com",
+	"Compliance": "mcx.compliance.agent@demo.com",
+}
+
+# Match customer name or domain fragments in email subject/body.
+CUSTOMER_KEYWORD_RULES = [
+	(["alpha brokers", "alphabrokers.com", "alphabrokers"], "Alpha Brokers"),
+	(["silver trading", "silvertrading.com", "silvertrading"], "Silver Trading Co"),
+	(["golden commodities", "goldencommodities.com", "goldencommodities"], "Golden Commodities Ltd"),
+	(["ascra technologies", "ascra.com"], "Ascra Technologies"),
+]
+
+# Ordered keyword rules — more specific patterns first.
+EMAIL_KEYWORD_RULES = [
+	(
+		["password reset", "reset my password", "forgot password"],
+		"IT - Portal Access",
+		"IT",
+		"Password Reset",
+	),
+	(
+		["login", "unable to login", "portal access", "sign in", "sign-in"],
+		"IT - Portal Access",
+		"IT",
+		"Login Issue",
+	),
+	(
+		["system down", "outage", "downtime", "terminal disconnect", "not working"],
+		"IT - System Downtime",
+		"IT",
+		"System Outage",
+	),
+	(
+		["payout", "payment pending", "cpo settlement"],
+		"Clearing - Payout",
+		"Clearing",
+		"Payout Pending",
+	),
+	(
+		["settlement", "clearing delay", "t+1", "bank credit"],
+		"Clearing - Settlement",
+		"Clearing",
+		"Settlement Delay",
+	),
+	(
+		["order reject", "order rejected", "order entry", "trade reject", "goldm"],
+		"Trading - Order Entry",
+		"Trading",
+		"Order Rejection",
+	),
+	(
+		["margin", "price mismatch", "peak margin", "silverm"],
+		"Trading - Margin Query",
+		"Trading",
+		"Price Mismatch",
+	),
+	(
+		["kyc", "know your customer", "pan document"],
+		"Compliance - KYC",
+		"Compliance",
+		"KYC Update",
+	),
+	(
+		["regulatory", "compliance report", "open interest", "reporting"],
+		"Compliance - Reporting",
+		"Compliance",
+		"Regulatory Filing",
+	),
+]
 
 PRIORITY_LADDER = ["Low", "Medium", "High", "Urgent"]
 

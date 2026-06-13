@@ -159,10 +159,10 @@ import { useOnboarding } from "frappe-ui/frappe";
 import sanitizeHtml from "sanitize-html";
 import { computed, defineAsyncComponent, onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import SearchArticles from "../../components/SearchArticles.vue";
+import SearchArticles from "@/components/SearchArticles.vue";
 
 const TicketTextEditor = defineAsyncComponent(
-  () => import("./TicketTextEditor.vue")
+  () => import("@/pages/ticket/TicketTextEditor.vue")
 );
 
 interface P {

@@ -29,6 +29,7 @@ UI_TRANSLATIONS = [
 
 def ensure_ui_translations(language: str | None = None):
 	language = language or frappe.db.get_single_value("System Settings", "language") or "en"
+	_remove_stale_translations(language)
 	for source_text, translated_text in UI_TRANSLATIONS:
 		name = frappe.db.exists(
 			"Translation", {"language": language, "source_text": source_text}
@@ -44,6 +45,16 @@ def ensure_ui_translations(language: str | None = None):
 				"translated_text": translated_text,
 			}
 		).insert(ignore_permissions=True)
+
+
+def _remove_stale_translations(language: str):
+	"""Drop incorrect overrides from earlier MCX iterations."""
+	for source_text, translated_text in (("Public Views", "Reports"),):
+		name = frappe.db.exists(
+			"Translation", {"language": language, "source_text": source_text, "translated_text": translated_text}
+		)
+		if name:
+			frappe.delete_doc("Translation", name, ignore_permissions=True)
 
 
 def ensure_hd_view_column_labels():
