@@ -13,4 +13,6 @@ def search(query: str) -> list:
 
 		return _search(query)
 	except Exception:
+		# RediSearch unavailable, Redis down, or upstream search errors — never block ticket creation.
+		frappe.logger().debug("Article search unavailable", exc_info=True)
 		return []

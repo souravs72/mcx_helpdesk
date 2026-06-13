@@ -10,7 +10,7 @@ from typing import Any
 import frappe
 from frappe.query_builder import DocType
 from frappe.query_builder.functions import Avg, Count, Function
-from frappe.utils import add_days, nowdate
+from frappe.utils import add_days, getdate, nowdate
 from pypika import Case
 
 from helpdesk.utils import agent_only
@@ -137,8 +137,35 @@ def _agent_assign_cond(ticket, agent_email):
 	return Function("JSON_SEARCH", ticket._assign, "one", agent_email).isnotnull()
 
 
+def _period_end(to_date):
+	"""Exclusive upper bound = start of the day after to_date.
+
+	Matches the upstream Helpdesk dashboard (``creation < add_days(to_date, 1)``)
+	so a bare ``to_date`` includes tickets created any time on that day.
+	"""
+	return add_days(getdate(to_date), 1)
+
+
 def _period_cond(ticket, from_date, to_date):
-	return (ticket.creation >= from_date) & (ticket.creation <= to_date)
+	return (ticket.creation >= getdate(from_date)) & (ticket.creation < _period_end(to_date))
+
+
+def _unassigned_cond(ticket):
+	"""Open ticket has no assignee: _assign is NULL or empty (Frappe writes ``""``)."""
+	return ticket._assign.isnull() | (ticket._assign == "")
+
+
+def _assign_emails(raw) -> list[str]:
+	"""Parse HD Ticket ``_assign`` JSON the same way Frappe desk does."""
+	if not raw:
+		return []
+	try:
+		parsed = frappe.parse_json(raw)
+	except Exception:
+		return []
+	if isinstance(parsed, list):
+		return [e for e in parsed if e]
+	return []
 
 
 def _team_cond(ticket, team: str | None):
@@ -166,6 +193,114 @@ def _count_where(ticket, cond):
 	)[0]
 
 
+def _agent_emails_for_team(team: str | None) -> list[str] | None:
+	"""Return team member emails, or None when no team filter is applied."""
+	if not team:
+		return None
+	members = frappe.db.get_all(
+		"HD Team Member",
+		filters={"parent": team},
+		pluck="user",
+		ignore_permissions=True,
+	)
+	return [email for email in members if email]
+
+
+def _build_resource_cards(team: str | None = None) -> list[dict]:
+	"""Current workload snapshot for the By Department view (ticket-based, not availability status)."""
+	member_emails = _agent_emails_for_team(team)
+	if team and not member_emails:
+		return _empty_resource_cards(team)
+
+	agent_filters: dict | list = {"is_active": 1}
+	if member_emails is not None:
+		agent_filters = [["is_active", "=", 1], ["user", "in", member_emails]]
+
+	agents = frappe.get_all(
+		"HD Agent",
+		filters=agent_filters,
+		fields=["user"],
+		ignore_permissions=True,
+	)
+	total_agents = len(agents)
+
+	_, open_statuses = _status_lists()
+	ticket = DocType("HD Ticket")
+	open_cond = _combine_conditions(
+		ticket.status.isin(open_statuses) if open_statuses else None,
+		_team_cond(ticket, team),
+	)
+	open_tickets = _count_where(ticket, open_cond)
+
+	unassigned_cond = _combine_conditions(open_cond, _unassigned_cond(ticket))
+	unassigned = _count_where(ticket, unassigned_cond)
+
+	# Distinct active agents currently assigned to an open ticket — single query, parsed in Python.
+	assigned_agents = 0
+	if open_statuses:
+		active_emails = {a.user for a in agents if a.user}
+		open_assigns = (
+			frappe.qb.from_(ticket).select(ticket._assign).where(open_cond).run(pluck=True)
+		)
+		assigned_set: set[str] = set()
+		for raw in open_assigns:
+			assigned_set.update(_assign_emails(raw))
+		assigned_agents = len(assigned_set & active_emails)
+
+	scope = f" in {team}" if team else ""
+	return [
+		{
+			"title": "Total Agents",
+			"value": total_agents,
+			"tooltip": f"Active agents{scope}",
+			"section": "resource",
+		},
+		{
+			"title": "Open Tickets",
+			"value": open_tickets,
+			"tooltip": f"Tickets currently open{scope}",
+			"section": "resource",
+			"accent": "amber" if open_tickets else "default",
+		},
+		{
+			"title": "Assigned Agents",
+			"value": assigned_agents,
+			"tooltip": f"Agents with at least one open ticket{scope}",
+			"section": "resource",
+		},
+		{
+			"title": "Unassigned Tickets",
+			"value": unassigned,
+			"tooltip": f"Open tickets with no assignee{scope}",
+			"section": "resource",
+			"accent": "red" if unassigned else "default",
+		},
+	]
+
+
+def _empty_resource_cards(team: str | None = None) -> list[dict]:
+	scope = f" in {team}" if team else ""
+	return [
+		{"title": "Total Agents", "value": 0, "tooltip": f"Active agents{scope}", "section": "resource"},
+		{
+			"title": "Open Tickets",
+			"value": 0,
+			"tooltip": f"Tickets currently open{scope}",
+			"section": "resource",
+		},
+		{
+			"title": "Assigned Agents",
+			"value": 0,
+			"tooltip": f"Agents with at least one open ticket{scope}",
+			"section": "resource",
+		},
+		{
+			"title": "Unassigned Tickets",
+			"value": 0,
+			"tooltip": f"Open tickets with no assignee{scope}",
+			"section": "resource",
+		},
+	]
 
 @frappe.whitelist()
 @agent_only
@@ -203,6 +338,13 @@ def _patch_number_cards(cards: list[dict], filters: dict) -> list[dict]:
 		ticket, base & ticket.agreement_status.isin(["Fulfilled", "Failed"])
 	)
 	sla_pct = _sla_rate_pct(fulfilled, sla_base)
+	closed_cond = _combine_conditions(
+		ticket.resolution_date.isnotnull(),
+		ticket.resolution_date >= getdate(from_date),
+		ticket.resolution_date < _period_end(to_date),
+		team_filter,
+	)
+	closed_count = _count_where(ticket, closed_cond)
 
 	patched = []
 	for card in cards:
@@ -227,6 +369,15 @@ def _patch_number_cards(cards: list[dict], filters: dict) -> list[dict]:
 			continue
 
 		patched.append(card)
+		if card.get("title") == "New Tickets":
+			patched.append(
+				{
+					"title": "Closed Tickets",
+					"value": closed_count,
+					"tooltip": "Tickets resolved in the selected date range",
+					"section": "period",
+				}
+			)
 
 	for card in patched:
 		card["section"] = "period"
@@ -583,6 +734,7 @@ def get_department_stats(filters: dict | None = None, limit: int = DEFAULT_PAGE_
 		)
 	paginated = _paginate_rows(result, limit)
 	paginated["chart_rows"] = result
+	paginated["resource_cards"] = _build_resource_cards(team)
 	return paginated
 
 
@@ -597,10 +749,18 @@ def get_agent_leaderboard(filters: dict | None = None, limit: int = DEFAULT_PAGE
 	to_date = filters.get("to_date") or nowdate()
 	team = filters.get("team")
 
+	agent_filters: dict | list = {"is_active": 1}
+	if team:
+		member_emails = _agent_emails_for_team(team)
+		if not member_emails:
+			return _paginate_rows([], limit)
+		agent_filters = [["is_active", "=", 1], ["user", "in", member_emails]]
+
 	agents = frappe.get_all(
 		"HD Agent",
 		fields=["name", "agent_name", "user"],
-		filters={"is_active": 1},
+		filters=agent_filters,
+		ignore_permissions=True,
 	)
 	resolved_statuses, open_statuses = _status_lists()
 	ticket = DocType("HD Ticket")
@@ -730,33 +890,45 @@ def _get_manager_action_tickets(list_type: str, filters: dict | None = None, lim
 	team = filters.get("team")
 	limit = _normalize_page_length(limit)
 
-	base_filters = [["status_category", "=", "Open"]]
+	ticket = DocType("HD Ticket")
+	cond = ticket.status_category == "Open"
 	if team:
-		base_filters.append(["agent_group", "=", team])
+		cond = cond & (ticket.agent_group == team)
 
 	if list_type == "unassigned":
-		base_filters.append(["_assign", "in", ["", "[]"]])
+		cond = cond & _unassigned_cond(ticket)
 		reason_type, reason_text = "unassigned", "No assignee"
 	elif list_type == "breached":
-		base_filters.append(["agreement_status", "=", "Failed"])
+		cond = cond & (ticket.agreement_status == "Failed")
 		reason_type, reason_text = "breached", "SLA breached"
 	elif list_type == "escalated":
-		base_filters.append(["mcx_sla_breach_escalated", "=", 1])
+		cond = cond & (ticket.mcx_sla_breach_escalated == 1)
 		reason_type, reason_text = "escalated", "Escalated"
 	else:
 		frappe.throw(f"Unknown manager list type: {list_type}")
 
-	total = frappe.db.count("HD Ticket", filters=base_filters)
-	tickets = frappe.get_list(
-		"HD Ticket",
-		fields=TICKET_LIST_FIELDS,
-		filters=base_filters,
-		order_by="modified desc",
-		limit=limit,
-		ignore_permissions=True,
+	total = _count_where(ticket, cond)
+	names = (
+		frappe.qb.from_(ticket)
+		.select(ticket.name)
+		.where(cond)
+		.orderby(ticket.modified, order=frappe.qb.desc)
+		.limit(limit)
+		.run(pluck=True)
 	)
-	for ticket in tickets:
-		ticket["reason"] = {"type": reason_type, "text": reason_text}
+	tickets = (
+		frappe.get_list(
+			"HD Ticket",
+			fields=TICKET_LIST_FIELDS,
+			filters=[["name", "in", names]],
+			order_by="modified desc",
+			ignore_permissions=True,
+		)
+		if names
+		else []
+	)
+	for t in tickets:
+		t["reason"] = {"type": reason_type, "text": reason_text}
 
 	return _ticket_list_response(tickets, total, list_type)
 

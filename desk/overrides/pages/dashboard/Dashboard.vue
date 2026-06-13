@@ -163,6 +163,14 @@
       <!-- MANAGER — BY DEPARTMENT -->
       <template v-else-if="activeTab === 'dept'">
         <div class="mb-4">
+          <div class="mb-4">
+            <KpiGroupLabel :label="__('Team Capacity')" />
+            <div v-if="deptStats.loading" class="flex w-full gap-2.5">
+              <div v-for="n in 4" :key="'r'+n" class="flex-1 h-[88px] rounded-xl bg-surface-white animate-pulse border border-outline-gray-1" />
+            </div>
+            <KpiStrip v-else-if="deptResourceCards.length" :cards="deptResourceCards" />
+          </div>
+
           <KpiGroupLabel :label="periodLabel" />
           <div v-if="!deptStats.loading && deptBarChart" class="mb-4">
             <ChartCard :chart="deptBarChart" />
@@ -225,6 +233,7 @@ import LucideClock       from "~icons/lucide/clock";
 import LucideTimer       from "~icons/lucide/timer";
 import LucideStar        from "~icons/lucide/star";
 import LucideBarChart2   from "~icons/lucide/bar-chart-2";
+import LucideCircleCheck from "~icons/lucide/circle-check";
 import SkeletonLoader from "@/components/SkeletonLoader.vue";
 
 const { isMobileView } = useScreenSize();
@@ -420,7 +429,28 @@ function isChartEmpty(chart: any) {
 function makeChart(chart: any) {
   const { title: _title, subtitle: _subtitle, ...rest } = chart;
   const cfg = { ...rest, colors: COLORS };
-  if (cfg.type === "axis") return h(AxisChart, { config: cfg });
+  if (cfg.type === "axis") {
+    // frappe-ui defaults category axes to hideOverlap, which drops alternate
+    // labels for long names and makes bars look mislabelled. Force every label
+    // to render, truncating long names (full text still shows in the tooltip).
+    if (cfg.xAxis?.type === "category") {
+      const existing = cfg.xAxis.echartOptions || {};
+      cfg.xAxis = {
+        ...cfg.xAxis,
+        echartOptions: {
+          ...existing,
+          axisLabel: {
+            interval: 0,
+            hideOverlap: false,
+            width: 80,
+            overflow: "truncate",
+            ...(existing.axisLabel || {}),
+          },
+        },
+      };
+    }
+    return h(AxisChart, { config: cfg });
+  }
   if (cfg.type === "pie")  return h(DonutChart, { config: cfg });
   return null;
 }
@@ -479,12 +509,13 @@ const agentStats = createResource({
 
 const deptStats = createResource({
   url: "mcx_helpdesk.api.dashboard.get_department_stats",
-  cache: ["Mcx", "DeptStats"],
+  cache: ["Mcx", "DeptStats", "v2"],
   makeParams: () => ({ filters: orgFilters.value, limit: deptPageLength.value }),
 });
 
 const deptRows = computed(() => (deptStats.data as any)?.rows || []);
 const deptTotalCount = computed(() => (deptStats.data as any)?.total_count ?? 0);
+const deptResourceCards = computed(() => (deptStats.data as any)?.resource_cards || []);
 
 function handleDeptPageLength(count: number, loadMore = false) {
   if (loadMore) deptPageLength.value += count;
@@ -635,7 +666,9 @@ const KPI_ICON_MAP: Record<string, any> = {
   "Open":         LucideInbox,
   "Open Tickets": LucideInbox,
   "New Tickets":  LucideInbox,
+  "Closed Tickets": LucideCircleCheck,
   "Unassigned":   LucideUserX,
+  "Unassigned Tickets": LucideUserX,
   "SLA Breached": LucideShieldAlert,
   "Escalated":    LucideZap,
   "No Response":  LucideClock,
@@ -650,6 +683,8 @@ const KPI_ICON_MAP: Record<string, any> = {
   "Resolved":     LucideCheckCircle,
   "Avg. Feedback Rating": LucideStar,
   "Feedback":     LucideStar,
+  "Total Agents": LucideUsers,
+  "Assigned Agents": LucideUser,
 };
 
 const KpiStrip = defineComponent({
