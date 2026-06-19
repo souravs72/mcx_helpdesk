@@ -1,0 +1,149 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:rule_name",
+ "creation": "2026-06-18 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "rule_name",
+  "enabled",
+  "rule_type",
+  "priority",
+  "column_break_meta",
+  "keywords",
+  "routing_section",
+  "department",
+  "issue_type",
+  "sub_issue_type",
+  "set_priority",
+  "customer_section",
+  "customer"
+ ],
+ "fields": [
+  {
+   "fieldname": "rule_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Rule Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Enabled"
+  },
+  {
+   "default": "Ticket Routing",
+   "fieldname": "rule_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Rule Type",
+   "options": "Ticket Routing\nCustomer Match",
+   "reqd": 1
+  },
+  {
+   "default": "100",
+   "description": "Lower numbers are evaluated first (more specific rules should have lower priority numbers)",
+   "fieldname": "priority",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Priority"
+  },
+  {
+   "fieldname": "column_break_meta",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "One keyword or phrase per line. Matching is case-insensitive and uses substring search.",
+   "fieldname": "keywords",
+   "fieldtype": "Small Text",
+   "label": "Keywords",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.rule_type=='Ticket Routing'",
+   "fieldname": "routing_section",
+   "fieldtype": "Section Break",
+   "label": "Ticket Routing"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "HD Team"
+  },
+  {
+   "fieldname": "issue_type",
+   "fieldtype": "Link",
+   "label": "Issue Type",
+   "options": "HD Ticket Type"
+  },
+  {
+   "fieldname": "sub_issue_type",
+   "fieldtype": "Link",
+   "label": "Sub Issue Type",
+   "options": "HD Sub Issue Type"
+  },
+  {
+   "fieldname": "set_priority",
+   "fieldtype": "Link",
+   "label": "Set Priority",
+   "options": "HD Ticket Priority"
+  },
+  {
+   "depends_on": "eval:doc.rule_type=='Customer Match'",
+   "fieldname": "customer_section",
+   "fieldtype": "Section Break",
+   "label": "Customer Match"
+  },
+  {
+   "depends_on": "eval:doc.rule_type=='Customer Match'",
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "HD Customer"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-18 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "MCX Helpdesk",
+ "name": "MCX Classification Rule",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "role": "Agent Manager",
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Agent"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "rule_name",
+ "track_changes": 1
+}

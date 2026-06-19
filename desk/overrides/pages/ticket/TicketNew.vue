@@ -51,6 +51,15 @@
               </Tooltip>
             </template>
           </template>
+          <!-- MCX: hint for sub_issue_type when it is disabled -->
+          <template v-if="field.fieldname === 'sub_issue_type'" #label-extra>
+            <Tooltip
+              v-if="field.disabled"
+              :text="__('Select an Issue Type first to unlock this field')"
+            >
+              <lucide-circle-question-mark class="h-4 w-4 text-ink-gray-4" />
+            </Tooltip>
+          </template>
         </UniInput>
       </div>
       <!-- existing fields -->

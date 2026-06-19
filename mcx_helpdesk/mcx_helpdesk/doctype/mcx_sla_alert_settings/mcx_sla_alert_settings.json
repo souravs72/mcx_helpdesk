@@ -1,0 +1,95 @@
+{
+ "actions": [],
+ "creation": "2026-06-18 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "enabled",
+  "warning_threshold_pct",
+  "critical_threshold_pct",
+  "column_break_notify",
+  "notify_assignee",
+  "notify_supervisor",
+  "refresh_section",
+  "supervisor_board_refresh_seconds"
+ ],
+ "fields": [
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enable Proactive SLA Alerts"
+  },
+  {
+   "default": "75",
+   "description": "Fire warning alerts when this % of the SLA window has elapsed",
+   "fieldname": "warning_threshold_pct",
+   "fieldtype": "Int",
+   "label": "Warning Threshold (%)"
+  },
+  {
+   "default": "90",
+   "description": "Fire critical alerts when this % of the SLA window has elapsed",
+   "fieldname": "critical_threshold_pct",
+   "fieldtype": "Int",
+   "label": "Critical Threshold (%)"
+  },
+  {
+   "fieldname": "column_break_notify",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "notify_assignee",
+   "fieldtype": "Check",
+   "label": "Notify Assignee"
+  },
+  {
+   "default": "1",
+   "fieldname": "notify_supervisor",
+   "fieldtype": "Check",
+   "label": "Notify Department Supervisor"
+  },
+  {
+   "fieldname": "refresh_section",
+   "fieldtype": "Section Break",
+   "label": "Supervisor Board"
+  },
+  {
+   "default": "30",
+   "description": "How often the live queue refreshes from server (seconds)",
+   "fieldname": "supervisor_board_refresh_seconds",
+   "fieldtype": "Int",
+   "label": "Board Refresh Interval (seconds)"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-06-18 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "MCX Helpdesk",
+ "name": "MCX SLA Alert Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Agent Manager",
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

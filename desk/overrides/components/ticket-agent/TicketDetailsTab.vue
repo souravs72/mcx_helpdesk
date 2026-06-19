@@ -37,6 +37,60 @@
         <!-- Assignee component -->
         <AssignTo />
       </div>
+
+      <!-- MCX: Proactive SLA risk banner -->
+      <div
+        v-if="slaRiskBanner.visible"
+        class="mt-3 rounded-lg border px-3 py-2.5"
+        :class="slaRiskBanner.wrapClass"
+      >
+        <div class="flex items-center gap-2">
+          <LucideClock class="size-3.5 shrink-0" :class="slaRiskBanner.iconClass" />
+          <span class="text-sm font-semibold leading-tight" :class="slaRiskBanner.textClass">
+            {{ slaRiskBanner.title }}
+          </span>
+          <Badge
+            :label="slaRiskBanner.badge"
+            :theme="slaRiskBanner.badgeTheme"
+            variant="subtle"
+            class="ml-auto shrink-0"
+          />
+        </div>
+        <p class="mt-1 pl-5 text-xs leading-tight" :class="slaRiskBanner.textClass" style="opacity: 0.8">
+          {{ slaRiskBanner.detail }}
+        </p>
+      </div>
+
+      <!-- MCX: AI assist -->
+      <AiAssistPanel class="mt-3" />
+
+      <!-- MCX: Escalation status banner -->
+      <div
+        v-if="escalationBanner.visible"
+        class="mt-3 rounded-lg border px-3 py-2.5"
+        :class="escalationBanner.wrapClass"
+      >
+        <div class="flex items-center gap-2">
+          <LucideAlertTriangle class="size-3.5 shrink-0" :class="escalationBanner.iconClass" />
+          <span class="text-sm font-semibold leading-tight" :class="escalationBanner.textClass">
+            {{ escalationBanner.title }}
+          </span>
+          <Badge
+            :label="escalationBanner.badge"
+            :theme="escalationBanner.badgeTheme"
+            variant="subtle"
+            class="ml-auto shrink-0"
+          />
+        </div>
+        <p
+          v-if="escalationBanner.since"
+          class="mt-1 pl-5 text-xs leading-tight"
+          :class="escalationBanner.textClass"
+          style="opacity: 0.75"
+        >
+          Escalated {{ escalationBanner.since }}
+        </p>
+      </div>
     </div>
 
     <!-- Scrollable sections: Ticket Info + Recent / Similar Tickets -->
@@ -156,17 +210,119 @@ import {
   TicketSymbol,
 } from "@/types";
 import { useStorage } from "@vueuse/core";
-import { dayjs, Tooltip } from "frappe-ui";
+import { Badge, dayjs, Tooltip } from "frappe-ui";
 import { computed, inject, ref } from "vue";
+import LucideAlertTriangle from "~icons/lucide/alert-triangle";
 import LucideChevronRight from "~icons/lucide/chevron-right";
+import LucideClock from "~icons/lucide/clock";
 import Section from "@/components/Section.vue";
 import TicketField from "@/components/TicketField.vue";
 import AssignTo from "@/components/ticket-agent/AssignTo.vue";
+import AiAssistPanel from "@/components/ticket-agent/AiAssistPanel.vue";
 import TicketContact from "@/components/ticket-agent/TicketContact.vue";
 
 const ticket = inject(TicketSymbol)!;
 const assignees = inject(AssigneeSymbol)!;
 const customizations = inject(CustomizationSymbol)!;
+
+const slaRiskBanner = computed(() => {
+  const doc = ticket.value?.doc;
+  if (!doc) return { visible: false };
+
+  const risk = doc.mcx_sla_risk_level;
+  if (!risk || risk === "None" || doc.agreement_status === "Failed") {
+    return { visible: false };
+  }
+
+  const pct = doc.mcx_sla_risk_pct ? `${Math.round(doc.mcx_sla_risk_pct)}%` : "";
+  const target = doc.mcx_sla_risk_target || "SLA";
+  const detail = `${target} window ${pct} elapsed — act before SLA breach.`;
+
+  if (risk === "Critical") {
+    return {
+      visible: true,
+      title: "SLA breach imminent",
+      badge: "Critical",
+      badgeTheme: "red",
+      wrapClass: "border-red-200 bg-red-50",
+      iconClass: "text-red-500",
+      textClass: "text-red-700",
+      detail,
+    };
+  }
+
+  return {
+    visible: true,
+    title: "SLA deadline approaching",
+    badge: "Warning",
+    badgeTheme: "orange",
+    wrapClass: "border-amber-200 bg-amber-50",
+    iconClass: "text-amber-500",
+    textClass: "text-amber-800",
+    detail,
+  };
+});
+
+const escalationBanner = computed(() => {
+  const doc = ticket.value?.doc;
+  if (!doc) return { visible: false };
+
+  const level: number = doc.mcx_escalation_level || 0;
+  const isBreached: boolean = doc.agreement_status === "Failed";
+  if (!isBreached && level === 0) return { visible: false };
+
+  const since = doc.mcx_last_escalated_on
+    ? dayjs(doc.mcx_last_escalated_on).fromNow()
+    : null;
+
+  if (level >= 3) {
+    return {
+      visible: true,
+      title: "Escalated to Country Head",
+      badge: "L3 — Country Head",
+      badgeTheme: "red",
+      wrapClass: "border-red-200 bg-red-50",
+      iconClass: "text-red-500",
+      textClass: "text-red-700",
+      since,
+    };
+  }
+  if (level === 2) {
+    return {
+      visible: true,
+      title: "Escalated to Department Head",
+      badge: "L2 — Dept. Head",
+      badgeTheme: "red",
+      wrapClass: "border-red-200 bg-red-50",
+      iconClass: "text-red-500",
+      textClass: "text-red-700",
+      since,
+    };
+  }
+  if (level === 1) {
+    return {
+      visible: true,
+      title: "Escalated to Supervisor",
+      badge: "L1 — Supervisor",
+      badgeTheme: "orange",
+      wrapClass: "border-orange-200 bg-orange-50",
+      iconClass: "text-orange-500",
+      textClass: "text-orange-700",
+      since,
+    };
+  }
+  // SLA failed but the 15-min job hasn't fired yet
+  return {
+    visible: true,
+    title: "SLA Breached",
+    badge: "Pending Escalation",
+    badgeTheme: "orange",
+    wrapClass: "border-orange-200 bg-orange-50",
+    iconClass: "text-orange-500",
+    textClass: "text-orange-700",
+    since: null,
+  };
+});
 const activities = inject(ActivitiesSymbol)!;
 const recentSimilarTickets = inject(RecentSimilarTicketsSymbol)!;
 const { getFields, getField } = getMeta("HD Ticket");

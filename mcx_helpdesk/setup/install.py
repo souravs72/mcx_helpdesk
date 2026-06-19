@@ -22,7 +22,7 @@ def ensure_custom_fields():
 					"depends_on": "eval:doc.ticket_type",
 					"in_list_view": 1,
 					"in_standard_filter": 1,
-				}
+				},
 			]
 		},
 		ignore_validate=True,

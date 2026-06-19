@@ -398,6 +398,8 @@ const agentDrilldownActionTypes = [
 ];
 const managerActionTypes = [
   { value: "unassigned", label: __("Unassigned") },
+  { value: "sla_warning", label: __("SLA Warning") },
+  { value: "sla_critical", label: __("SLA Critical") },
   { value: "breached",   label: __("SLA Breached") },
   { value: "escalated",  label: __("Escalated") },
 ];

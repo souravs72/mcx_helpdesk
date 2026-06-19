@@ -1,0 +1,49 @@
+{
+ "actions": [],
+ "creation": "2026-06-18 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "team",
+  "l1_user",
+  "l2_user"
+ ],
+ "fields": [
+  {
+   "fieldname": "team",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Team",
+   "options": "HD Team",
+   "reqd": 1
+  },
+  {
+   "fieldname": "l1_user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "L1 Supervisor",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "l2_user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "L2 Department Head",
+   "options": "User",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-06-18 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "MCX Helpdesk",
+ "name": "MCX Escalation Rule",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

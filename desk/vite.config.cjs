@@ -10,6 +10,7 @@ const HELPDESK_DESK = path.resolve(__dirname, "../../helpdesk/desk");
 const HELPDESK_SRC = path.join(HELPDESK_DESK, "src");
 const OVERRIDES_DIR = path.resolve(__dirname, "overrides");
 const STAGING_DIR = path.join(HELPDESK_DESK, ".mcx-ui-staging");
+const MCX_TAILWIND_CONFIG = path.join(HELPDESK_DESK, "tailwind.mcx.config.js");
 const requireHelpdesk = createRequire(path.join(HELPDESK_DESK, "package.json"));
 const { loadConfigFromFile } = requireHelpdesk("vite");
 
@@ -39,8 +40,27 @@ function stageOverrides() {
 	}
 }
 
+function writeMcxTailwindConfig() {
+	// Tailwind must scan staged MCX overrides or utility classes are missing from CSS.
+	const content = `import base from "./tailwind.config.js";
+
+export default {
+	...base,
+	content: [
+		...(base.content || []),
+		"./.mcx-ui-staging/**/*.{vue,js,ts,jsx,tsx}",
+	],
+};
+`;
+	fs.writeFileSync(MCX_TAILWIND_CONFIG, content);
+}
+
 function buildOverrideAliases() {
 	const aliases = [];
+	const appOverride = path.join(STAGING_DIR, "App.vue");
+	if (fs.existsSync(appOverride)) {
+		aliases.push({ find: path.join(HELPDESK_SRC, "App.vue"), replacement: appOverride });
+	}
 	for (const rel of walkOverrideFiles(OVERRIDES_DIR)) {
 		const stagingPath = path.join(STAGING_DIR, rel);
 		aliases.push({ find: `@/${rel}`, replacement: stagingPath });
@@ -63,6 +83,7 @@ function normalizeAliases(alias) {
 
 module.exports = async (env) => {
 	stageOverrides();
+	writeMcxTailwindConfig();
 
 	const loaded = await loadConfigFromFile(
 		env,
@@ -75,12 +96,37 @@ module.exports = async (env) => {
 	}
 
 	const config = loaded.config;
-	const helpdeskAliases = normalizeAliases(config.resolve?.alias);
+	const helpdeskAliases = normalizeAliases(config.resolve?.alias).filter(
+		(entry) => entry.find !== "tailwind.config.js"
+	);
 
 	config.resolve = {
 		...config.resolve,
-		alias: [...buildOverrideAliases(), ...helpdeskAliases],
+		alias: [
+			...buildOverrideAliases(),
+			{ find: "tailwind.config.js", replacement: MCX_TAILWIND_CONFIG },
+			...helpdeskAliases,
+		],
 	};
+
+	config.plugins = [
+		...(config.plugins || []),
+		{
+			name: "mcx-resolve-app-entry",
+			enforce: "pre",
+			resolveId(source, importer) {
+				if (
+					source === "./App.vue" &&
+					importer &&
+					importer.replace(/\\/g, "/").includes("/desk/src/main.js")
+				) {
+					const override = path.join(STAGING_DIR, "App.vue");
+					if (fs.existsSync(override)) return override;
+				}
+				return null;
+			},
+		},
+	];
 
 	return config;
 };

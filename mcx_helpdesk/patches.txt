@@ -6,3 +6,6 @@ mcx_helpdesk.patches.v1_0.remove_legacy_helpdesk_teams
 mcx_helpdesk.patches.v1_0.setup_sub_issue_visibility
 mcx_helpdesk.patches.v1_0.setup_dashboard_labels
 mcx_helpdesk.patches.v1_0.sync_mcx_helpdesk
+mcx_helpdesk.patches.v1_0.setup_automation
+mcx_helpdesk.patches.v1_0.setup_classification
+mcx_helpdesk.patches.v1_0.setup_faq

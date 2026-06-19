@@ -10,6 +10,9 @@ import frappe
 from mcx_helpdesk.setup.dashboard_labels import ensure_dashboard_labels
 from mcx_helpdesk.setup.data_cleanup import cleanup_helpdesk_data
 from mcx_helpdesk.setup.demo import setup_demo_site
+from mcx_helpdesk.setup.classification import ensure_classification_setup
+from mcx_helpdesk.setup.faq import ensure_faq_setup
+from mcx_helpdesk.setup.automation import ensure_automation_setup
 from mcx_helpdesk.setup.escalation import ensure_escalation_setup
 from mcx_helpdesk.setup.install import (
 	configure_email_account,
@@ -51,6 +54,9 @@ def sync_mcx_helpdesk():
 	configure_hd_settings()
 	configure_email_account()
 	ensure_escalation_setup()
+	ensure_automation_setup()
+	ensure_classification_setup()
+	ensure_faq_setup()
 
 	frappe.db.commit()
 	_clear_caches()

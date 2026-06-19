@@ -213,6 +213,7 @@ import { useRoute, useRouter } from "vue-router";
 import {
   agentPortalSidebarOptions,
   customerPortalSidebarOptions,
+  managerPortalSidebarOptions,
 } from "@/components/layouts/layoutSettings";
 
 import { useShortcut } from "@/composables/shortcuts";
@@ -273,7 +274,11 @@ function toggleSection(label: string, defaultOpen: boolean) {
 const allViews = computed(() => {
   let items = isCustomerPortal.value
     ? customerPortalSidebarOptions
-    : agentPortalSidebarOptions;
+    : [...agentPortalSidebarOptions];
+
+  if (!isCustomerPortal.value && authStore.isManager) {
+    items = [...items, ...managerPortalSidebarOptions];
+  }
 
   if (!isCallingEnabled.value) {
     items = items.filter((item) => item.label !== __("Call Logs"));

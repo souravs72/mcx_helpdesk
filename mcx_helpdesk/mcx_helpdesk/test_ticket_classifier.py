@@ -14,6 +14,12 @@ from mcx_helpdesk.mcx_helpdesk.ticket_classifier import (
 
 
 class TestTicketClassifier(FrappeTestCase):
+	@classmethod
+	def setUpClass(cls):
+		from mcx_helpdesk.setup.sync import sync_mcx_helpdesk
+
+		sync_mcx_helpdesk()
+
 	def test_subject_tag_parsing(self):
 		subject = "[TEAM:IT][TYPE:Portal Access][SUB:Password Reset] Unable to login"
 		tags = TAG_RE.findall(subject)

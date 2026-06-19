@@ -1,7 +1,7 @@
 # Copyright (c) 2026, Ascra Technologies LLP and contributors
 # For license information, please see license.txt
 
-"""Temporary regex/tag email classifier — replace with AI agent later."""
+"""Email/tag keyword classifier — rules loaded from MCX Classification Rule (desk)."""
 
 from __future__ import annotations
 
@@ -11,13 +11,8 @@ from email.utils import parseaddr
 import frappe
 from frappe.desk.form.assign_to import add as assign
 
-from mcx_helpdesk.constants import (
-	CUSTOMER_KEYWORD_RULES,
-	EMAIL_KEYWORD_RULES,
-	ISSUE_TYPE_PRIORITY,
-	TEAM_DEFAULT_AGENTS,
-	TICKET_TYPE_TEAM,
-)
+from mcx_helpdesk.mcx_helpdesk.classification_rules import match_customer_rule, match_ticket_routing_rule
+from mcx_helpdesk.setup.escalation import _fallback_team_agent_email
 
 # Subject/body tags — aliases in parentheses
 TAG_RE = re.compile(
@@ -38,6 +33,9 @@ def classify_ticket(doc, _method=None):
 	if not doc.get("subject") and not doc.get("description"):
 		return
 	if _is_system_sender(doc.get("raised_by")) and not _has_classification_tags(doc):
+		return
+
+	if not _has_classification_tags(doc) and _apply_ai_classification(doc):
 		return
 
 	subject = doc.subject or ""
@@ -65,21 +63,19 @@ def classify_ticket(doc, _method=None):
 			assignee = _resolve_assignee(value) or assignee
 
 	if not issue_type or not team or not sub_issue:
-		for keywords, rule_issue, rule_team, rule_sub in EMAIL_KEYWORD_RULES:
-			if any(word in text for word in keywords):
-				issue_type = issue_type or rule_issue
-				team = team or rule_team
-				sub_issue = sub_issue or rule_sub
-				break
+		rule = match_ticket_routing_rule(text)
+		if rule:
+			issue_type = issue_type or rule.get("issue_type")
+			team = team or rule.get("department")
+			sub_issue = sub_issue or rule.get("sub_issue_type")
+			if rule.get("set_priority"):
+				doc.flags.mcx_rule_priority = rule["set_priority"]
 
 	if issue_type and not team:
-		team = TICKET_TYPE_TEAM.get(issue_type)
+		team = _default_department_for_issue_type(issue_type)
 
 	if team and not issue_type:
-		for candidate, mapped_team in TICKET_TYPE_TEAM.items():
-			if mapped_team == team:
-				issue_type = candidate
-				break
+		issue_type = _first_issue_type_for_department(team)
 
 	if issue_type:
 		doc.ticket_type = issue_type
@@ -101,12 +97,16 @@ def classify_ticket(doc, _method=None):
 	if assignee:
 		doc.flags.mcx_assignee = assignee
 	elif team and not doc.flags.get("mcx_assignee"):
-		default_agent = TEAM_DEFAULT_AGENTS.get(team)
-		if default_agent and frappe.db.exists("HD Agent", default_agent):
+		default_agent = _fallback_team_agent_email(team)
+		if default_agent:
 			doc.flags.mcx_assignee = default_agent
 
 	if doc.ticket_type:
-		doc.priority = ISSUE_TYPE_PRIORITY.get(doc.ticket_type) or doc.priority
+		doc.priority = (
+			doc.flags.get("mcx_rule_priority")
+			or _priority_for_issue_type(doc.ticket_type)
+			or doc.priority
+		)
 
 	if TAG_RE.search(tag_source):
 		doc.subject = _clean_subject(subject, tag_source)
@@ -115,22 +115,64 @@ def classify_ticket(doc, _method=None):
 def apply_classified_assignee(doc, _method=None):
 	"""Assign agent after insert (assignment requires a saved ticket)."""
 	assignee = doc.flags.get("mcx_assignee")
-	if not assignee:
-		return
-	if not frappe.db.exists("HD Agent", assignee):
-		return
-	if _has_open_assignment(doc.name):
-		return
+	if assignee and frappe.db.exists("HD Agent", assignee) and not _has_open_assignment(doc.name):
+		assign(
+			{
+				"assign_to": [assignee],
+				"doctype": "HD Ticket",
+				"name": doc.name,
+				"description": "Assigned from email classification",
+			},
+			ignore_permissions=True,
+		)
 
-	assign(
-		{
-			"assign_to": [assignee],
-			"doctype": "HD Ticket",
-			"name": doc.name,
-			"description": "Assigned from email classification",
-		},
-		ignore_permissions=True,
+	# Base helpdesk skips ack for portal tickets; send an SLA-aware one instead.
+	if (
+		doc.via_customer_portal
+		and doc.raised_by
+		and not frappe.flags.initial_sync
+		and frappe.db.get_single_value("HD Settings", "send_acknowledgement_email")
+	):
+		_send_portal_acknowledgement(doc)
+
+
+def _send_portal_acknowledgement(doc):
+	from frappe.utils import format_datetime
+
+	sla_lines = []
+	if doc.response_by:
+		sla_lines.append(f"<li><strong>First response by:</strong> {format_datetime(doc.response_by)}</li>")
+	if doc.resolution_by:
+		sla_lines.append(f"<li><strong>Resolution target:</strong> {format_datetime(doc.resolution_by)}</li>")
+
+	sla_block = (
+		f"<p>Our service commitments for this ticket:</p><ul>{''.join(sla_lines)}</ul>"
+		if sla_lines
+		else ""
 	)
+
+	message = f"""
+<p>Dear Customer,</p>
+<p>Thank you for contacting MCX Support. We have received your request and created ticket
+<strong>#{frappe.utils.escape_html(doc.name)}</strong>.</p>
+<ul>
+<li><strong>Subject:</strong> {frappe.utils.escape_html(doc.subject or "")}</li>
+</ul>
+{sla_block}
+<p>Our team will be in touch shortly. You can track your ticket status at any time through the
+support portal.</p>
+"""
+	try:
+		frappe.sendmail(
+			recipients=[doc.raised_by],
+			subject=f"Ticket #{doc.name}: We've received your request",
+			message=message,
+			reference_doctype="HD Ticket",
+			reference_name=doc.name,
+			email_headers={"X-Auto-Generated": "mcx-hd-acknowledgement"},
+		)
+	except Exception:
+		frappe.log_error(title="MCX Portal Ack Email Failed", message=frappe.get_traceback())
 
 
 def _has_classification_tags(doc) -> bool:
@@ -189,12 +231,31 @@ def _resolve_customer_from_email(raised_by: str | None) -> str | None:
 
 
 def _resolve_customer_from_keywords(text: str) -> str | None:
-	for keywords, customer_name in CUSTOMER_KEYWORD_RULES:
-		if any(word in text for word in keywords):
-			resolved = _resolve_customer(customer_name)
-			if resolved:
-				return resolved
+	rule = match_customer_rule(text)
+	if not rule or not rule.get("customer"):
+		return None
+	if frappe.db.exists("HD Customer", rule["customer"]):
+		return rule["customer"]
 	return None
+
+
+def _default_department_for_issue_type(issue_type: str) -> str | None:
+	return frappe.db.get_value("HD Ticket Type", issue_type, "default_department")
+
+
+def _first_issue_type_for_department(team: str) -> str | None:
+	types = frappe.get_all(
+		"HD Ticket Type",
+		filters={"default_department": team, "disabled": 0},
+		pluck="name",
+		limit=1,
+		order_by="name asc",
+	)
+	return types[0] if types else None
+
+
+def _priority_for_issue_type(issue_type: str) -> str | None:
+	return frappe.db.get_value("HD Ticket Type", issue_type, "priority")
 
 
 def _resolve_issue_type(value):
@@ -313,3 +374,31 @@ def _clean_subject(subject, tag_source):
 	cleaned = TAG_RE.sub("", subject).strip()
 	cleaned = re.sub(r"\s+", " ", cleaned)
 	return cleaned or subject
+
+
+def _apply_ai_classification(doc) -> bool:
+	"""Use AI classifier when enabled. Returns True if fields were set."""
+	try:
+		from mcx_helpdesk.mcx_helpdesk.ai_assist import classify_with_ai
+
+		result = classify_with_ai(doc)
+	except Exception:
+		frappe.logger().debug("AI classification skipped", exc_info=True)
+		return False
+
+	if not result:
+		return False
+
+	if result.get("ticket_type"):
+		doc.ticket_type = result["ticket_type"]
+	if result.get("agent_group"):
+		doc.agent_group = result["agent_group"]
+	if result.get("sub_issue_type"):
+		resolved_sub = _resolve_sub_issue(result["sub_issue_type"], doc.ticket_type)
+		if resolved_sub:
+			doc.sub_issue_type = resolved_sub
+	if result.get("priority"):
+		doc.priority = result["priority"]
+
+	doc.flags.mcx_ai_classified = True
+	return bool(result.get("ticket_type") or result.get("agent_group"))

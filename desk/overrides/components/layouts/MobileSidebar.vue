@@ -131,6 +131,7 @@ import AvailabilityMenuMobile from "@/components/AvailabilityMenuMobile.vue";
 import {
   agentPortalSidebarOptions,
   customerPortalSidebarOptions,
+  managerPortalSidebarOptions,
 } from "@/components/layouts/layoutSettings";
 import { useTelephonyStore } from "@/stores/telephony";
 import { storeToRefs } from "pinia";
@@ -153,7 +154,11 @@ const { isCallingEnabled } = storeToRefs(telephonyStore);
 const allViews = computed(() => {
   let items = isCustomerPortal.value
     ? customerPortalSidebarOptions
-    : agentPortalSidebarOptions;
+    : [...agentPortalSidebarOptions];
+
+  if (!isCustomerPortal.value && authStore.isManager) {
+    items = [...items, ...managerPortalSidebarOptions];
+  }
 
   if (!isCallingEnabled.value) {
     items = items.filter((item) => item.label !== "Call Logs");

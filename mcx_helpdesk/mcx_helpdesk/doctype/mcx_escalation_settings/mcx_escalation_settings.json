@@ -1,0 +1,88 @@
+{
+ "actions": [],
+ "creation": "2026-06-18 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "enabled",
+  "reescalate_after_hours",
+  "column_break_global",
+  "country_head_user",
+  "deputy_country_head_user",
+  "team_rules_section",
+  "escalation_rules"
+ ],
+ "fields": [
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enable SLA Breach Escalation"
+  },
+  {
+   "default": "4",
+   "description": "Hours to wait before re-alerting at the same escalation level when SLA remains breached",
+   "fieldname": "reescalate_after_hours",
+   "fieldtype": "Int",
+   "label": "Re-escalation Interval (Hours)"
+  },
+  {
+   "fieldname": "column_break_global",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Receives CRITICAL alerts and is the L3 escalation assignee for all teams",
+   "fieldname": "country_head_user",
+   "fieldtype": "Link",
+   "label": "Country Head (L3)",
+   "options": "User"
+  },
+  {
+   "description": "Also receives CRITICAL alerts when a ticket is stuck at L3 (optional)",
+   "fieldname": "deputy_country_head_user",
+   "fieldtype": "Link",
+   "label": "Deputy Country Head (L3 backup alerts)",
+   "options": "User"
+  },
+  {
+   "fieldname": "team_rules_section",
+   "fieldtype": "Section Break",
+   "label": "Team Escalation Rules"
+  },
+  {
+   "fieldname": "escalation_rules",
+   "fieldtype": "Table",
+   "label": "Escalation Rules",
+   "options": "MCX Escalation Rule"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-06-18 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "MCX Helpdesk",
+ "name": "MCX Escalation Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Agent Manager",
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

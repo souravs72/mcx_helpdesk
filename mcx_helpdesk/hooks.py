@@ -105,6 +105,7 @@ after_migrate = ["mcx_helpdesk.setup.sync.after_migrate"]
 override_whitelisted_methods = {
 	"helpdesk.api.dashboard.get_dashboard_data": "mcx_helpdesk.api.dashboard.get_dashboard_data",
 	"helpdesk.api.article.search": "mcx_helpdesk.api.article.search",
+	"helpdesk.helpdesk.doctype.hd_ticket.api.get_one": "mcx_helpdesk.api.ticket.get_one",
 }
 
 # Desk UI: override Helpdesk Vue files from desk/overrides/ at build time.
@@ -113,13 +114,25 @@ override_whitelisted_methods = {
 doc_events = {
 	"HD Ticket": {
 		"before_validate": "mcx_helpdesk.mcx_helpdesk.ticket_classifier.classify_ticket",
-		"after_insert": "mcx_helpdesk.mcx_helpdesk.ticket_classifier.apply_classified_assignee",
-		"on_update": "mcx_helpdesk.mcx_helpdesk.escalation.on_ticket_update",
+		"after_insert": [
+			"mcx_helpdesk.mcx_helpdesk.ticket_classifier.apply_classified_assignee",
+			"mcx_helpdesk.mcx_helpdesk.workflow_engine.on_ticket_created",
+		],
+		"on_update": [
+			"mcx_helpdesk.mcx_helpdesk.escalation.on_ticket_update",
+			"mcx_helpdesk.mcx_helpdesk.workflow_engine.on_ticket_updated",
+			"mcx_helpdesk.mcx_helpdesk.sla_alerts.reset_risk_on_ticket_close",
+		],
 	}
 }
 
 scheduler_events = {
-	"hourly_long": [
-		"mcx_helpdesk.mcx_helpdesk.escalation.process_sla_breach_escalations",
-	],
+	"cron": {
+		"*/5 * * * *": [
+			"mcx_helpdesk.mcx_helpdesk.sla_alerts.process_proactive_sla_alerts",
+		],
+		"*/15 * * * *": [
+			"mcx_helpdesk.mcx_helpdesk.escalation.process_sla_breach_escalations",
+		],
+	}
 }

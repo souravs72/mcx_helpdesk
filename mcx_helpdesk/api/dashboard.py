@@ -553,9 +553,9 @@ def get_agent_stats(agent_email: str | None = None, filters: dict | None = None)
 	escalated_period = _count_period(ticket.mcx_sla_breach_escalated == 1)
 
 	awaiting_response = _count_open(ticket.first_responded_on.isnull())
-	sla_at_risk = _count_open(
-		ticket.agreement_status.isin(["First Response Due", "Resolution Due"])
-	)
+	sla_warning_open = _count_open(ticket.mcx_sla_risk_level == "Warning")
+	sla_critical_open = _count_open(ticket.mcx_sla_risk_level == "Critical")
+	sla_at_risk = sla_warning_open + sla_critical_open
 	breached_open = _count_open(ticket.agreement_status == "Failed")
 
 	fulfilled = _count_period(ticket.agreement_status == "Fulfilled")
@@ -653,6 +653,8 @@ def get_agent_stats(agent_email: str | None = None, filters: dict | None = None)
 		"open_tickets": open_tickets,
 		"awaiting_response": awaiting_response,
 		"sla_at_risk": sla_at_risk,
+		"sla_warning_open": sla_warning_open,
+		"sla_critical_open": sla_critical_open,
 		"breached_open": breached_open,
 		"resolved_tickets": resolved,
 		"escalated_tickets": escalated_period,
@@ -847,13 +849,13 @@ def get_action_tickets(
 	"""
 	Actionable ticket lists for dashboard.
 	Agents: upcoming_sla | new_tickets | pending | my_open
-	Managers: unassigned | breached | escalated
+	Managers: unassigned | sla_warning | sla_critical | breached | escalated
 	"""
 	filters = _parse_filters(filters)
 	user = frappe.session.user
 	is_manager = "Agent Manager" in frappe.get_roles(user)
 
-	if list_type in ("unassigned", "breached", "escalated"):
+	if list_type in ("unassigned", "sla_warning", "sla_critical", "breached", "escalated"):
 		if not is_manager:
 			frappe.throw("Only managers can view org-wide action lists.", frappe.PermissionError)
 		return _get_manager_action_tickets(list_type, filters, limit)
@@ -898,6 +900,12 @@ def _get_manager_action_tickets(list_type: str, filters: dict | None = None, lim
 	if list_type == "unassigned":
 		cond = cond & _unassigned_cond(ticket)
 		reason_type, reason_text = "unassigned", "No assignee"
+	elif list_type == "sla_warning":
+		cond = cond & (ticket.mcx_sla_risk_level == "Warning")
+		reason_type, reason_text = "sla_warning", "SLA warning (75%+ elapsed)"
+	elif list_type == "sla_critical":
+		cond = cond & (ticket.mcx_sla_risk_level == "Critical")
+		reason_type, reason_text = "sla_critical", "SLA critical (90%+ elapsed)"
 	elif list_type == "breached":
 		cond = cond & (ticket.agreement_status == "Failed")
 		reason_type, reason_text = "breached", "SLA breached"
@@ -948,7 +956,7 @@ def _get_agent_pending_tickets(list_type: str, agent_email: str, limit: int = DE
 	if list_type == "upcoming_sla":
 		filters = [
 			["sla", "is", "set"],
-			["agreement_status", "in", ["First Response Due", "Resolution Due"]],
+			["mcx_sla_risk_level", "in", ["Warning", "Critical"]],
 			["status_category", "=", "Open"],
 			["_assign", "like", f"%{agent_email}%"],
 			["creation", "between", [add_months(today(), -6), today()]],

@@ -115,8 +115,17 @@ const routes = [
     name: "CallLogs",
     component: () => import("@/pages/call-logs/CallLogs.vue"),
   },
+  {
+    path: "/supervisor-board",
+    name: "SupervisorBoard",
+    component: () => import("@/pages/supervisor/SupervisorBoard.vue"),
+  },
 
   // Customer Portal Routes
+  {
+    path: "/my_tickets",
+    redirect: "/my-tickets",
+  },
   {
     path: "/my-tickets",
     name: "TicketsCustomer",
